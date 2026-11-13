@@ -1,0 +1,30 @@
+# The starting search profile, used once to create your first profile. After that, edit profiles on the
+# Profiles & resumes page (they live in the database). Everything here is matched case-insensitively.
+# This is only an example: Setup's "From my resume" builds a better one from your own resume.
+
+roles:                     # what you call the jobs you want; used for board searches
+  - "Software Engineer"
+
+title_keywords:            # a job title must contain at least one of these to pass the prefilter
+  - engineer
+  - developer
+
+exclude_keywords:          # titles containing any of these are dropped before scoring
+  - intern
+  - director
+  - "vp "
+  - principal
+
+skills: []                 # ranks descriptions in the prefilter and is shown to the AI, e.g. [python, react, sql]
+
+locations:                 # substrings matched against the job location; empty list = anywhere
+  - Remote
+
+remote_ok: true
+onsite_ok: true
+countries: []              # ISO country codes, e.g. ["us"] or ["in"]; picks regional job boards
+seniority: []              # junior | mid | senior; empty = any
+
+max_age_days: 14           # ignore postings older than this
+min_prefilter_score: 30    # 0-100; below this a job never reaches the AI (saves your quota)
+min_fit_score: 70          # 0-100; at/above this AI-scored jobs are auto-shortlisted

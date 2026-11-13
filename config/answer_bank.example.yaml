@@ -1,0 +1,36 @@
+# Truthful answers the agent may use when filling application forms.
+# Leave a value empty and the agent will NOT answer that question; it will flag the application for your review.
+# Never put anything here you would not say yourself.
+
+identity:
+  full_name: ""
+  first_name: ""
+  last_name: ""
+  email: ""
+  phone: ""                 # include country code, e.g. +1 555 010 0000
+  current_location: ""      # "City, Country"
+  linkedin_url: ""
+  github_url: ""
+  portfolio_url: ""
+
+eligibility:
+  work_authorization: ""    # e.g. "Citizen, authorized to work in <country>"
+  needs_visa_sponsorship: ""  # "yes" | "no"
+  willing_to_relocate: ""   # "yes" | "no" | "within my country"
+  notice_period: ""         # e.g. "30 days" or "immediate"
+  years_of_experience: ""   # e.g. "2"
+  current_compensation: ""  # optional; leave blank to force review
+  expected_compensation: "" # optional; leave blank to force review
+  earliest_start_date: ""
+
+preferences:
+  pronouns: ""              # optional
+  how_did_you_hear: "Company careers page"
+  open_to_contract: ""      # "yes" | "no"
+
+# Free-form Q&A. The agent matches form questions to these by meaning, not exact text.
+custom:
+  - q: "Why do you want to work here?"
+    a: ""
+  - q: "Tell us about a project you are proud of."
+    a: ""

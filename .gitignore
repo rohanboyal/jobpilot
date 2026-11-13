@@ -1,0 +1,17 @@
+# python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+# node
+web/node_modules/
+web/dist/
+# local data (db, resume, browser profile, logs)
+data/
+!data/.gitkeep
+.env
+# personal answers typed into application forms (the template answer_bank.example.yaml is tracked)
+config/answer_bank.yaml
+# os
+.DS_Store

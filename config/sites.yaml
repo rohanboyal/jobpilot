@@ -1,0 +1,403 @@
+# Job sites crawled through the browser. Add any site here (or from the Settings page) without writing code.
+#
+# key:          short id, becomes source name "site_<key>"
+# search_url:   page that lists results. Placeholders: {role} {role_slug} {role_plus} {location} {location_slug}
+#               {location_plus} {days}  (slug = lowercase-dashed, plus = url-encoded with + for spaces)
+# login_url:    where to sign in (opened by `jobagent browser-login <key>` / the UI button). Optional.
+# needs_login:  true if results are only visible when signed in. The saved browser profile keeps the session.
+# enabled:      crawled on scheduled runs. Disabled sites can still be run manually.
+# countries:    only used when your search profile's countries overlaps (empty = always).
+# pages:        how many result pages to read per role/location (each page costs ~1 AI call for extraction).
+# read_details: false stops the crawler from opening each job page (default true; set when robots.txt disallows them).
+# card_selector / title_selector / company_selector / location_selector / link_selector:
+#               optional CSS selectors; when present they are tried before AI extraction (free & fast).
+
+sites:
+  - key: wellfound
+    label: Wellfound (AngelList Talent)
+    search_url: "https://wellfound.com/role/l/{role_slug}/{location_slug}"
+    login_url: "https://wellfound.com/login"
+    needs_login: false
+    enabled: true
+    pages: 1
+    notes: Startup jobs; signing in shows more results and enables one-click apply.
+
+  - key: cutshort
+    label: Cutshort
+    # Off since 2026-10-27: its search pages show no listings to visitors any more, and reading them cost an AI call
+    # each for nothing. Sign in once and turn it on to try again.
+    search_url: "https://cutshort.io/jobs/{role_slug}-jobs-in-{location_slug}"
+    login_url: "https://cutshort.io/login"
+    needs_login: false
+    enabled: false
+    countries: [in]
+    pages: 1
+
+  - key: instahyre
+    label: Instahyre
+    search_url: "https://www.instahyre.com/{role_slug}-jobs-in-{location_slug}/"
+    login_url: "https://www.instahyre.com/login/"
+    needs_login: true
+    enabled: false
+    countries: [in]
+    pages: 1
+    notes: Mostly gated; sign in once, then enable.
+
+  - key: hirist
+    label: Hirist
+    search_url: "https://www.hirist.tech/search/{role_slug}-jobs-in-{location_slug}"
+    login_url: "https://www.hirist.tech/login"
+    needs_login: false
+    enabled: true
+    countries: [in]
+    pages: 1
+
+  - key: foundit
+    label: Foundit (Monster India)
+    # Off since 2026-10-27: it answers every search with HTTP 403 (automated visits refused).
+    search_url: "https://www.foundit.in/srp/results?query={role_plus}&locations={location_plus}&jobFreshness={days}"
+    login_url: "https://www.foundit.in/rio/login"
+    needs_login: false
+    enabled: false
+    countries: [in]
+    pages: 1
+
+  - key: glassdoor
+    label: Glassdoor
+    search_url: "https://www.glassdoor.co.in/Job/jobs.htm?sc.keyword={role_plus}&locKeyword={location_plus}&fromAge={days}"
+    login_url: "https://www.glassdoor.co.in/profile/login_input.htm"
+    needs_login: false
+    enabled: false
+    pages: 1
+    notes: Aggressive bot protection; enable after signing in once.
+
+  - key: timesjobs
+    label: TimesJobs
+    search_url: "https://www.timesjobs.com/candidate/job-search.html?searchType=personalizedSearch&from=submit&txtKeywords={role_plus}&txtLocation={location_plus}"
+    needs_login: false
+    enabled: true
+    countries: [in]
+    pages: 1
+
+  - key: internshala
+    label: Internshala Jobs
+    search_url: "https://internshala.com/jobs/{role_slug}-jobs-in-{location_slug}/"
+    login_url: "https://internshala.com/login/user"
+    needs_login: false
+    enabled: false
+    countries: [in]
+    pages: 1
+    notes: Entry-level roles; enable if useful.
+
+  - key: iimjobs
+    label: IIMJobs
+    search_url: "https://www.iimjobs.com/search/{role_slug}-jobs-in-{location_slug}"
+    login_url: "https://www.iimjobs.com/login"
+    needs_login: true
+    enabled: false
+    countries: [in]
+    pages: 1
+
+  - key: yc_startups
+    label: Y Combinator – Work at a Startup
+    search_url: "https://www.workatastartup.com/jobs?query={role_plus}&remote=any"
+    login_url: "https://www.workatastartup.com/companies"
+    needs_login: false
+    enabled: true
+    pages: 1
+    notes: Public list; sign in to see full postings and apply.
+
+  - key: unstop
+    label: Unstop Jobs
+    search_url: "https://unstop.com/jobs?searchTerm={role_plus}"
+    login_url: "https://unstop.com/auth/login"
+    needs_login: false
+    enabled: false
+    countries: [in]
+    pages: 1
+
+  # ---------------------------------------------------------------------------------------------------------
+  # Added 2026-10-22. Public boards readable like a visitor; selectors were confirmed live, so they cost no
+  # AI calls. Entries that ship disabled need a login, sit behind bot protection, or have terms that forbid
+  # automated reading (same class as LinkedIn/Indeed/Glassdoor): enable them at your own discretion.
+  # ---------------------------------------------------------------------------------------------------------
+
+  - key: weekday
+    label: Weekday (weekday.works)
+    search_url: "https://www.weekday.works/jobs/{role_slug}-jobs-in-{location_slug}"
+    login_url: "https://jobs.weekday.works/"
+    needs_login: false
+    enabled: true
+    countries: [in]
+    pages: 1
+    card_selector: "article"
+    title_selector: "h3 a"
+    company_selector: "p b"
+    location_selector: ":scope > div:nth-of-type(2) > span:first-of-type"
+    link_selector: "h3 a"
+    notes: Indian startup board, server-rendered, 20 cards per page; dedicated slugs per role and city.
+
+  - key: startup_jobs
+    label: Startup Jobs (startup.jobs)
+    # Off since 2026-10-27: every visit now gets a Cloudflare bot check, and this project doesn't work around those.
+    search_url: "https://startup.jobs/?q={role_plus}"
+    login_url: "https://startup.jobs/login"
+    needs_login: false
+    enabled: false
+    pages: 1
+    card_selector: 'div[class~="group/post"]'
+    title_selector: 'a[data-post-template-target="title"]'
+    company_selector: 'a[data-post-template-target="companyName"]'
+    location_selector: '[data-post-template-target="location"]'
+    link_selector: 'a[data-post-template-target="title"]'
+    notes: Global startup board with India and remote listings; about 20 pinned posts precede the matches on page 1.
+
+  - key: builtin
+    label: Built In (India pages)
+    search_url: "https://builtin.com/jobs/as/india/dev-engineering/python?daysSinceUpdated={days}"
+    login_url: "https://builtin.com/auth/login"
+    needs_login: false
+    enabled: true
+    countries: [in]
+    pages: 1
+    card_selector: 'div[data-id="job-card"]'
+    title_selector: 'a[data-id="job-card-title"]'
+    company_selector: 'a[data-id="company-title"]'
+    location_selector: "div:has(> .fa-location-dot) + div > span"
+    link_selector: 'a[data-id="job-card-title"]'
+    notes: Python category for India offices of large companies. robots.txt forbids the ?search= form, so the URL has no role placeholder.
+
+  - key: dynamite_jobs
+    label: Dynamite Jobs
+    search_url: "https://dynamitejobs.com/remote-jobs?text={role_plus}"
+    login_url: "https://dynamitejobs.com/enter/login/candidate"
+    needs_login: false
+    enabled: true
+    pages: 1
+    card_selector: "div.border-b.bg-white.border-l-0"
+    title_selector: 'h2[href*="/remote-job/"]'
+    company_selector: 'p[href^="/company/"]'
+    location_selector: "span.truncate:has(> span)"
+    link_selector: 'h2[href*="/remote-job/"]'
+    notes: Remote-first board; most postings restrict eligibility by region (the location column shows it).
+
+  - key: aijobs_ai
+    label: AIJobs.ai
+    search_url: "https://aijobs.ai/jobs?keyword={role_plus}"
+    login_url: "https://aijobs.ai/login"
+    needs_login: false
+    enabled: true
+    pages: 1
+    read_details: false
+    card_selector: "div.col-xl-4.col-md-6.rt-mb-24"
+    title_selector: "div.tw-text-lg"
+    company_selector: "span.tw-card-title"
+    location_selector: ".tw-flex-wrap.tw-gap-2 span + span"
+    link_selector: "a.jobcardStyle1"
+    notes: Niche AI/ML board, mostly US with a Remote badge. robots.txt disallows the job pages, so only the card is read.
+
+  - key: remote_com
+    label: Remote.com Jobs
+    search_url: "https://remote.com/jobs/all?query={role_plus}"
+    login_url: "https://remote.com/jobs/sign-in"
+    needs_login: false
+    enabled: false
+    pages: 2
+    card_selector: "article"
+    title_selector: 'a[href*="/jobs/"]'
+    company_selector: 'a[href*="/jobs/"] ~ span'
+    location_selector: "ul li:nth-of-type(2) span"
+    link_selector: 'a[href*="/jobs/"]'
+    notes: Server-rendered, no login, hiring country per card. The site says this board closes on 2026-11-30; enable until then, delete after.
+
+  - key: mljobs_io
+    label: MLjobs.io
+    search_url: "https://mljobs.io/ml-engineer"
+    needs_login: false
+    enabled: false
+    countries: [us, gb, fr, nl, de, sg, ch, kr, il, pl]
+    pages: 1
+    card_selector: "li.group"
+    title_selector: "h3"
+    company_selector: "span.font-normal"
+    location_selector: "span.font-normal + span"
+    link_selector: "a[href^='/jobs/']"
+    notes: Frontier-lab ML roles, almost all hybrid or on-site in the US and Western Europe. No search; the page lists the 10 newest ML Engineer jobs.
+
+  - key: apna
+    label: Apna
+    search_url: "https://apna.co/jobs/{role_slug}-jobs-in-{location_slug}"
+    login_url: "https://apna.co/jobs"
+    needs_login: false
+    enabled: false
+    countries: [in]
+    pages: 2
+    card_selector: 'a[data-testid="job-card"]'
+    title_selector: "h2"
+    company_selector: "h2 + span"
+    location_selector: 'svg[data-testid="LocationOnIcon"] + span'
+    notes: Public and server-rendered, but Apna's user agreement forbids robots and automated copying. Off by default.
+
+  - key: careerbuilder
+    label: CareerBuilder (US)
+    search_url: "https://www.careerbuilder.com/jobs-{role_slug}-in-{location_slug}?posted={days}"
+    login_url: "https://www.careerbuilder.com/login"
+    needs_login: false
+    enabled: false
+    countries: [us]
+    pages: 1
+    notes: US board. A DataDome device check blocks headless loads and the terms forbid automated copying. Off by default.
+
+  - key: turing
+    label: Turing (work.turing.com)
+    search_url: "https://work.turing.com/jobs"
+    login_url: "https://work.turing.com/jobs"
+    needs_login: false
+    enabled: false
+    pages: 1
+    notes: Talent-network gigs (mostly AI data work) without per-role URLs; Turing's terms forbid scraping. Listed for reference only.
+
+  - key: uplers
+    label: Uplers Talent Platform
+    search_url: "https://platform.uplers.com/talent/all-opportunities"
+    login_url: "https://platform.uplers.com/login"
+    needs_login: true
+    enabled: false
+    countries: [in]
+    pages: 1
+    notes: Listings are only visible to a signed-in Uplers talent account. Sign in once, then enable (one AI call per page).
+
+  - key: welcome_to_the_jungle
+    label: Welcome to the Jungle
+    search_url: "https://www.welcometothejungle.com/en/jobs-matches"
+    login_url: "https://www.welcometothejungle.com/en/authenticate/signin"
+    needs_login: true
+    enabled: false
+    countries: [fr, gb, us, es, cz, sk]
+    pages: 1
+    notes: EU-centric. Anonymous search no longer lists jobs and the terms forbid automated access. Off by default.
+
+  - key: ventureloop
+    label: VentureLoop
+    search_url: "https://www.ventureloop.com/jobs?query={role_plus}&location={location_plus}"
+    login_url: "https://www.ventureloop.com/login?next=/jobs"
+    needs_login: true
+    enabled: false
+    countries: [us]
+    pages: 1
+    notes: VC-backed startup board, executive-leaning; visitors see locked teasers only and the terms forbid scraping. Off by default.
+
+  - key: techfetch
+    label: TechFetch (US IT contracts)
+    search_url: "https://www.techfetch.com/js/js_s_jobs.aspx?kw={role_plus}&loc="
+    login_url: "https://www.techfetch.com/js/js_login.aspx"
+    needs_login: false
+    enabled: false
+    countries: [us]
+    pages: 1
+    card_selector: "div[id$='_divJob']"
+    title_selector: "span[id$='_lblTitle'] a"
+    company_selector: "div[id$='_lblPostedBy'] a"
+    location_selector: "span[id$='_lblLocation'] a"
+    link_selector: "span[id$='_lblTitle'] a"
+    notes: US staffing and contract postings; the terms forbid data-gathering tools. Off by default.
+
+  - key: remote_co
+    label: Remote.co
+    search_url: "https://remote.co/remote-jobs/developer"
+    login_url: "https://remote.co/login"
+    needs_login: false
+    enabled: false
+    pages: 2
+    card_selector: "#job-table-wrapper > div[id]"
+    title_selector: 'a[id^="job-name-"] span:last-of-type'
+    company_selector: 'h3[id^="company-name-"]'
+    location_selector: "i.fa-location-dot + span"
+    link_selector: 'a[id^="job-name-"]'
+    notes: Developer category (no keyword search). The site's edge refused every probe from this Mac and the terms forbid crawling; selectors come from an archived copy.
+
+  - key: aijobs_com
+    label: AIJobs.com
+    search_url: "https://www.aijobs.com/jobs?filters%5B28795%5D={role_plus}&filters%5B28799%5D%5Blocation%5D={location_plus}"
+    needs_login: false
+    enabled: false
+    pages: 2
+    card_selector: "div.job-listings-item"
+    title_selector: "a.job-details-link h3"
+    company_selector: "a.job-info-link-item[href^='/companies/']"
+    location_selector: "a.job-info-link-item[href^='/jobs/in-'], a.job-info-link-item[href^='/jobs/remote']"
+    link_selector: "a.job-details-link"
+    notes: AI/ML board with India listings; the terms forbid robots and scrapers, so it ships off.
+
+  - key: simplyhired
+    label: SimplyHired India
+    search_url: "https://www.simplyhired.co.in/search?q={role_plus}&l={location_plus}&t=7"
+    login_url: "https://www.simplyhired.co.in/"
+    needs_login: false
+    enabled: false
+    countries: [in]
+    pages: 1
+    card_selector: "[data-testid=searchSerpJob]"
+    title_selector: "[data-testid=searchSerpJobTitle]"
+    company_selector: "[data-testid=companyName]"
+    location_selector: "[data-testid=searchSerpJobLocation]"
+    link_selector: "a[href*='/job/']"
+    notes: Indeed-owned; Indeed's terms (which cover SimplyHired) forbid automated access without written permission. Off by default.
+
+  - key: talent_com
+    label: Talent.com India
+    search_url: "https://in.talent.com/jobs?k={role_plus}&l={location_plus}&date={days}"
+    login_url: "https://in.talent.com/jobs?showSignInModal=true"
+    needs_login: false
+    enabled: false
+    countries: [in]
+    pages: 1
+    card_selector: "article[class*='JobCard_card']"
+    title_selector: "h2[class*='JobCard_title']"
+    company_selector: "[class*='JobCard_company']"
+    location_selector: "[class*='JobCard_location']"
+    link_selector: "a[href*='/view?id=']"
+    notes: Aggregator; its terms forbid scraping of any kind. Off by default.
+
+  - key: nofluffjobs
+    label: No Fluff Jobs (Poland / CEE)
+    search_url: "https://nofluffjobs.com/remote?criteria=keyword%3D{role_plus}"
+    login_url: "https://nofluffjobs.com/"
+    needs_login: false
+    enabled: false
+    countries: [pl, cz, sk, hu]
+    pages: 1
+    card_selector: "a.posting-list-item"
+    title_selector: "h3.posting-title__position"
+    company_selector: "inline-icon[commonicon=job_offer] + span"
+    location_selector: "[data-cy='location on the job offer listing']"
+    notes: Its terms ban repeated or systematic downloading of job ads. Remote roles mostly expect EU residence. Off by default.
+
+  - key: justjoinit
+    label: Just Join IT (Poland)
+    search_url: "https://justjoin.it/job-offers/remote?keyword={role_plus}"
+    login_url: "https://justjoin.it/"
+    needs_login: false
+    enabled: false
+    countries: [pl]
+    pages: 1
+    card_selector: "div:has(> a.offer-card)"
+    title_selector: "a.offer_list_offer_title_link"
+    company_selector: "p"
+    location_selector: "div:has(> p) + *"
+    link_selector: "a.offer-card"
+    notes: Its terms forbid automated extraction without written consent. Off by default.
+
+  - key: remoterocketship
+    label: Remote Rocketship
+    search_url: "https://www.remoterocketship.com/remote-jobs/?jobTitle={role_plus}&locations={location_plus}"
+    login_url: "https://www.remoterocketship.com/log-in/"
+    needs_login: false
+    enabled: false
+    pages: 1
+    card_selector: "div.list-none"
+    title_selector: "h3 a"
+    company_selector: "h4 a"
+    location_selector: "div.flex-wrap.gap-2 > :first-child > p"
+    link_selector: "h3 a"
+    notes: Very relevant remote roles, but its terms prohibit scraping and automated browser sessions; the sanctioned access is a paid API. Off by default.

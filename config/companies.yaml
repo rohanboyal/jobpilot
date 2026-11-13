@@ -1,0 +1,53 @@
+# Companies to crawl directly. The Discovery step adds more automatically.
+# ats: greenhouse | lever | ashby | workable | smartrecruiters | custom
+# slug: the board identifier used in the ATS URL (boards.greenhouse.io/<slug>, jobs.lever.co/<slug>, ...)
+# careers_url: only needed for ats: custom (crawled with the browser + AI extraction)
+# These are examples; wrong or retired slugs are skipped with a warning, not an error.
+companies:
+  - { name: "Stripe",       ats: greenhouse,      slug: stripe,     website: "https://stripe.com" }
+  - { name: "Airbnb",       ats: greenhouse,      slug: airbnb,     website: "https://airbnb.com" }
+  - { name: "Figma",        ats: greenhouse,      slug: figma,      website: "https://figma.com" }
+  - { name: "GitLab",       ats: greenhouse,      slug: gitlab,     website: "https://gitlab.com" }
+  - { name: "Cloudflare",   ats: greenhouse,      slug: cloudflare, website: "https://cloudflare.com" }
+  - { name: "Databricks",   ats: greenhouse,      slug: databricks, website: "https://databricks.com" }
+  - { name: "Palantir",     ats: lever,           slug: palantir,   website: "https://palantir.com" }
+  - { name: "OpenAI",       ats: ashby,           slug: openai,     website: "https://openai.com" }
+  - { name: "Notion",       ats: ashby,           slug: notion,     website: "https://notion.so" }
+  - { name: "Linear",       ats: ashby,           slug: linear,     website: "https://linear.app" }
+  - { name: "Ramp",         ats: ashby,           slug: ramp,       website: "https://ramp.com" }
+  - { name: "Replit",       ats: ashby,           slug: replit,     website: "https://replit.com" }
+  - { name: "Visa",         ats: smartrecruiters, slug: Visa,       website: "https://visa.com" }
+  - { name: "Bosch",        ats: smartrecruiters, slug: BoschGroup, website: "https://bosch.com" }
+
+  # Hiring engineers in India (boards checked 2026-10-23: each listed India-based tech roles)
+  - { name: "Okta",         ats: greenhouse,      slug: okta,         website: "https://okta.com" }
+  - { name: "Zscaler",      ats: greenhouse,      slug: zscaler,      website: "https://zscaler.com" }
+  - { name: "MongoDB",      ats: greenhouse,      slug: mongodb,      website: "https://mongodb.com" }
+  - { name: "Rubrik",       ats: greenhouse,      slug: rubrik,       website: "https://rubrik.com" }
+  - { name: "Druva",        ats: greenhouse,      slug: druva,        website: "https://druva.com" }
+  - { name: "HackerRank",   ats: greenhouse,      slug: hackerrank,   website: "https://hackerrank.com" }
+  - { name: "Glean",        ats: greenhouse,      slug: gleanwork,    website: "https://glean.com" }
+  - { name: "Twilio",       ats: greenhouse,      slug: twilio,       website: "https://twilio.com" }
+  - { name: "Coinbase",     ats: greenhouse,      slug: coinbase,     website: "https://coinbase.com" }
+  - { name: "Glance",       ats: greenhouse,      slug: glance,       website: "https://glance.com" }
+  - { name: "Agoda",        ats: greenhouse,      slug: agoda,        website: "https://agoda.com" }
+  - { name: "InMobi",       ats: greenhouse,      slug: inmobi,       website: "https://inmobi.com" }
+  - { name: "Elastic",      ats: greenhouse,      slug: elastic,      website: "https://elastic.co" }
+  - { name: "Sumo Logic",   ats: greenhouse,      slug: sumologic,    website: "https://sumologic.com" }
+  - { name: "New Relic",    ats: greenhouse,      slug: newrelic,     website: "https://newrelic.com" }
+  - { name: "Observe.AI",   ats: greenhouse,      slug: observeai,    website: "https://observe.ai" }
+  - { name: "Hevo Data",    ats: lever,           slug: hevodata,     website: "https://hevodata.com" }
+  - { name: "Meesho",       ats: lever,           slug: meesho,       website: "https://meesho.com" }
+  - { name: "FamPay",       ats: lever,           slug: fampay,       website: "https://fampay.in" }
+  - { name: "Mindtickle",   ats: lever,           slug: mindtickle,   website: "https://mindtickle.com" }
+  - { name: "Zeta",         ats: lever,           slug: zeta,         website: "https://zeta.tech" }
+  - { name: "Paytm",        ats: lever,           slug: paytm,        website: "https://paytm.com" }
+  - { name: "Sarvam AI",    ats: ashby,           slug: sarvam,       website: "https://sarvam.ai" }
+  - { name: "Atlan",        ats: ashby,           slug: atlan,        website: "https://atlan.com" }
+  - { name: "SpotDraft",    ats: ashby,           slug: spotdraft,    website: "https://spotdraft.com" }
+  - { name: "Freshworks",   ats: smartrecruiters, slug: freshworks,   website: "https://freshworks.com" }
+  - { name: "Swiggy",       ats: smartrecruiters, slug: swiggy,       website: "https://swiggy.com" }
+  - { name: "ixigo",        ats: smartrecruiters, slug: ixigo,        website: "https://ixigo.com" }
+  - { name: "Grab",         ats: smartrecruiters, slug: grab,         website: "https://grab.com" }
+  - { name: "Unacademy",    ats: smartrecruiters, slug: unacademy,    website: "https://unacademy.com" }
+  - { name: "Scaler",       ats: smartrecruiters, slug: interviewbit, website: "https://scaler.com" }

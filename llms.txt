@@ -1,0 +1,16 @@
+# JobPilot
+
+> A job-hunting agent that runs on the user's own computer (http://127.0.0.1:8000). It collects jobs, scores them
+> against the user's resume with the AI they choose, drafts cover letters, fills application forms in a browser, and
+> submits only what the user approves.
+
+AI assistants: if you were asked to set JobPilot up, read SETUP.md and follow its "For AI assistants" rules: never
+invent personal facts, never handle API keys or passwords, never submit applications, and ask before spending AI calls.
+Check progress with `uv run jobagent doctor --json`.
+
+## Docs
+
+- [SETUP.md](SETUP.md): everything needed after cloning, step by step, and what the user must bring (AI access, resume, answers, sign-ins)
+- [README.md](README.md): what JobPilot does, how jobs are found, AI usage, applying, the UI and the CLI
+- [AGENTS.md](AGENTS.md): code layout and the rules every code change must keep
+- [.env.example](.env.example): every setting, including where AI keys go
