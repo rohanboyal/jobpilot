@@ -38,7 +38,7 @@ def check(choice: Any = None) -> dict[str, Any]:
     if not binary:
         return {"ok": False, "error": _NOT_FOUND}
     try:
-        out = subprocess.run([binary, "--version"], stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=20)
+        out = subprocess.run([binary, "--version"], stdin=subprocess.DEVNULL, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=20)
     except Exception as e:  # pragma: no cover
         return {"ok": False, "path": binary, "error": str(e)}
     # Whether it is signed in only shows on a real call: "Test connection" makes one.
@@ -70,7 +70,8 @@ def complete(prompt: str, schema: dict[str, Any] | None, timeout_s: int, choice:
     if schema is not None:
         args += ["--json-schema", json.dumps(schema)]
     try:
-        proc = subprocess.run(args + [prompt], stdin=subprocess.DEVNULL, capture_output=True, text=True,
+        # The prompt goes in on stdin (no length limit, never part of a command line).
+        proc = subprocess.run(args, input=prompt, capture_output=True, text=True, encoding="utf-8", errors="replace",
                               timeout=timeout_s, cwd=str(s.llm_cwd))
     except subprocess.TimeoutExpired as e:
         raise LLMTimeout(f"Claude Code timed out after {timeout_s}s") from e

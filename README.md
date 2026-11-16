@@ -14,7 +14,8 @@ screening answers, fills application forms in a browser, and submits only what y
 
 ## Requirements
 
-- macOS (the browser automation and the background service are built for it).
+- Windows 10/11, macOS or Linux. Every change is installed, tested, built and started on all three automatically.
+  Windows uses `scripts\windows.ps1` where macOS and Linux use `make`; see [SETUP.md](SETUP.md).
 - One AI (ChatGPT, Claude, Gemini, any OpenAI-compatible API, or a local model), chosen in **Settings → AI** (see [Choosing your AI](#choosing-your-ai)). The default is the Codex CLI with a
   ChatGPT plan: the ChatGPT desktop app ships it, or `npm i -g @openai/codex` and `codex login`.
 - Optional: [Ollama](https://ollama.com) with a small model (e.g. `qwen3.5:4b`) as a fallback when your main AI hits its limit.

@@ -54,14 +54,14 @@ def check(choice: Any = None) -> dict[str, Any]:
     if not binary:
         return {"ok": False, "error": "Codex CLI not found. Install the ChatGPT desktop app or `npm i -g @openai/codex`."}
     try:
-        out = subprocess.run([binary, "--version"], stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=20)
+        out = subprocess.run([binary, "--version"], stdin=subprocess.DEVNULL, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=20)
         version = (out.stdout or out.stderr).strip()
     except Exception as e:  # pragma: no cover
         return {"ok": False, "path": binary, "error": str(e)}
     auth = Path(os.environ.get("CODEX_HOME", "~/.codex")).expanduser() / "auth.json"
     signed_in = False
     try:
-        signed_in = json.loads(auth.read_text()).get("auth_mode") == "chatgpt"
+        signed_in = json.loads(auth.read_text(encoding="utf-8")).get("auth_mode") == "chatgpt"
     except Exception:
         pass
     return {"ok": out.returncode == 0 and signed_in, "path": binary, "version": version, "signed_in": signed_in,
@@ -117,16 +117,17 @@ def complete(prompt: str, schema: dict[str, Any] | None, timeout_s: int, choice:
             args += ["-m", model]
         if schema is not None:
             schema_file = Path(tmp) / "schema.json"
-            schema_file.write_text(json.dumps(schema))
+            schema_file.write_text(json.dumps(schema), encoding="utf-8")
             args += ["--output-schema", str(schema_file)]
-        args.append(_PREAMBLE + prompt)
+        # The prompt goes in on stdin, never on the command line: no length limit (Windows allows ~32k characters), and
+        # job text can never be read as part of a command (an npm `codex.cmd` wrapper runs through cmd.exe on Windows).
         try:
-            proc = subprocess.run(args, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=timeout_s,
-                                  cwd=str(cwd))
+            proc = subprocess.run(args, input=_PREAMBLE + prompt, capture_output=True, text=True, encoding="utf-8",
+                                  errors="replace", timeout=timeout_s, cwd=str(cwd))
         except subprocess.TimeoutExpired as e:
             raise LLMTimeout(f"Codex timed out after {timeout_s}s") from e
         output = (proc.stdout or "") + "\n" + (proc.stderr or "")
-        reply = out_file.read_text().strip() if out_file.exists() else ""
+        reply = out_file.read_text(encoding="utf-8", errors="replace").strip() if out_file.exists() else ""
         if proc.returncode != 0 or not reply:
             raise classify(_error_text(output) or f"exit code {proc.returncode}")
     if schema is None:

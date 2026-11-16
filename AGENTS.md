@@ -79,6 +79,12 @@ after approval; Run now / Stop are in the header. Jobs can also be applied to di
   `jobs.keep_days` (30). Jobs with an application always stay. Cards say "found N days ago" (`discovered_at`).
 - Sources: a company board answering 404 is paused with a note (`ATSSource.fetch`); Levels.fyi is paced under its free
   20-a-minute limit; The Muse is off (its API answers automated clients with a bot check).
+- Cross-platform (Windows, macOS, Linux; CI in `.github/workflows/ci.yml` runs on all three): never `os.kill(pid, 0)`
+  (on Windows it ends the process); use `utils/proc.pid_alive`. Read and write text files with `encoding="utf-8"` and
+  decode subprocess output as UTF-8 (Windows defaults to cp1252). Prompts go to CLI providers on stdin, never as an
+  argument (Windows' ~32k command-line limit, and npm `.cmd` wrappers run through cmd.exe). JobPilot's browser writes
+  `jobpilot.lock` in the profile while open (headless Chromium leaves no lock of its own); `browser.profile_in_use`
+  reads it. Windows uses `scripts\windows.ps1` (install, serve, update, start at log-in via Task Scheduler).
 - DB columns added after release go in `db._ADDED_COLUMNS` (create_all never alters tables).
 - `web/` React 19 + Vite + Tailwind v4 + TanStack Query; `src/api.ts` is the typed client, pages in `src/pages` (Today, Jobs,
   Applications, Profiles, Schedule, Settings, Setup wizard, Insights, Activity). Page state that should survive Back/refresh

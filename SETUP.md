@@ -41,10 +41,15 @@ those need their accounts and their information.
 
 | | Why | Install (macOS) |
 |---|---|---|
-| macOS | JobPilot is built and tested on macOS. Linux should work except step 6's background service; on Windows use WSL (untested). | |
-| [uv](https://docs.astral.sh/uv/) | Python 3.12 and its packages (uv fetches Python itself) | `brew install uv` |
-| Node.js 20+ | builds the web app | `brew install node` |
-| git, make | clone and the short commands below | `xcode-select --install` |
+| Windows 10/11, macOS or Linux | Every change is installed, tested, built and started on all three automatically (GitHub Actions). | |
+| [uv](https://docs.astral.sh/uv/) | Python 3.12 and its packages (uv fetches Python itself) | macOS: `brew install uv` · Windows: `powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 \| iex"` |
+| Node.js 20+ | builds the web app | macOS: `brew install node` · Windows: `winget install OpenJS.NodeJS.LTS` |
+| git | to clone | macOS: `xcode-select --install` · Windows: `winget install Git.Git` |
+| make (macOS, Linux) | the short commands below; Windows uses `scripts\windows.ps1` instead | comes with the developer tools |
+
+The automatic checks cover installing, every test, the web app and starting the server (on Windows also the
+start-at-log-in task). What they can't cover is what needs a person: signing in to an AI command-line tool, and the
+sign-in windows for job sites. Those use the same code on every system.
 | One AI | scores jobs and writes letters: see step 4 | |
 | About 1 GB of disk | packages and the Chromium browser used to fill forms | |
 
@@ -68,11 +73,21 @@ These are personal, so they can't be part of a public repository. JobPilot asks 
 
 ## 1. Install
 
+macOS / Linux:
+
 ```bash
 git clone <this repository's URL> jobpilot
 cd jobpilot
 make install          # Python packages, the Chromium browser for form filling, and the web app's packages
 uv run jobagent init  # creates data/jobagent.db and loads the example company boards
+```
+
+Windows (PowerShell):
+
+```powershell
+git clone <this repository's URL> jobpilot
+cd jobpilot
+powershell -ExecutionPolicy Bypass -File scripts\windows.ps1 install   # packages, browser, web app and database in one go
 ```
 
 If `make` isn't available: `uv sync && uv run playwright install chromium && (cd web && npm install)`.
@@ -89,7 +104,8 @@ do in the app (steps 4 and 5). Run it again whenever you like; it is free.
 ## 3. Start the app
 
 ```bash
-make serve            # builds the web app, then serves everything on http://127.0.0.1:8000
+make serve            # macOS / Linux: builds the web app, then serves everything on http://127.0.0.1:8000
+powershell -ExecutionPolicy Bypass -File scripts\windows.ps1 serve   # Windows
 ```
 
 Open http://127.0.0.1:8000. It keeps running while that terminal is open (Ctrl+C stops it). Port 8000 busy? Put
@@ -101,21 +117,21 @@ hot reload on http://localhost:5173.
 Create your settings file once:
 
 ```bash
-cp .env.example .env
+cp .env.example .env        # Windows: copy .env.example .env
 ```
 
 Then pick one provider in the app (**Settings → AI**) and press **Test connection** (one small call):
 
 | Provider | What to do | Cost |
 |---|---|---|
-| **Codex CLI** (default) | Install the ChatGPT desktop app, or `npm i -g @openai/codex`, then run `codex login` once | your ChatGPT plan |
+| **Codex CLI** (default) | Install the ChatGPT desktop app (macOS) or `npm i -g @openai/codex` (any system), then run `codex login` once | your ChatGPT plan |
 | **Claude Code CLI** | Install [Claude Code](https://claude.com/claude-code), then run `claude` once and sign in | your Claude plan |
 | **Google Gemini API** | Get a key at https://aistudio.google.com/apikey, add `JOBAGENT_GEMINI_API_KEY=...` to `.env`, restart, pick a model | free tier with limits, then pay per use |
 | **OpenAI-compatible API** | Add `JOBAGENT_OPENAI_API_KEY=...` to `.env`, restart, pick the server (OpenAI, OpenRouter, Groq, DeepSeek, Mistral, or an address) and a model | pay per use |
 | **Anthropic API** | Add `JOBAGENT_ANTHROPIC_API_KEY=...` to `.env`, restart | pay per use |
 | **Ollama** | Install [Ollama](https://ollama.com), run `ollama pull qwen3.5:4b` (or another model) | free, on your computer |
 
-"Restart" means stopping `make serve` with Ctrl+C and starting it again, because `.env` is read at start.
+"Restart" means stopping `make serve` (or `windows.ps1 serve`) with Ctrl+C and starting it again, because `.env` is read at start.
 
 The AI never gets tools: it reads text and returns an answer, so a job posting can't make it act on your computer.
 Calls are capped by `JOBAGENT_LLM_MAX_CALLS_PER_5H` and `_PER_DAY` in `.env` (60 and 150 by default).
@@ -137,10 +153,13 @@ screen; nothing is sent until you press Submit.
 
 ## 6. Optional
 
-- **Keep it running in the background (macOS):** `make launchd-install` starts JobPilot at login and restarts it if it
-  stops (`make launchd-remove` undoes it). Scheduled runs only happen while JobPilot is running. After you update the
-  code: `cd web && npm run build && launchctl kickstart -k gui/$(id -u)/com.jobpilot.server`. Stop it before
-  `make dev`, which uses the same port.
+- **Keep it running in the background.** Scheduled runs only happen while JobPilot is running.
+  - macOS: `make launchd-install` starts JobPilot at login and restarts it if it stops (`make launchd-remove` undoes
+    it). After you update the code: `cd web && npm run build && launchctl kickstart -k gui/$(id -u)/com.jobpilot.server`.
+    Stop it before `make dev`, which uses the same port.
+  - Windows: `powershell -ExecutionPolicy Bypass -File scripts\windows.ps1 startup-install` starts JobPilot hidden whenever you log in (a Task Scheduler task called
+    "JobPilot", logs in `data\server.log`); `startup-remove` undoes it.
+  - Linux: run `uv run jobagent serve` from your desktop's startup applications or a systemd user service.
 - **Sign in to a job site:** Settings → Sources → Sign in, or `uv run jobagent browser-login <site>`. A window opens in
   the browser you clicked from (Chrome or Edge; otherwise JobPilot's own Chromium), with JobPilot's own profile: your
   personal browser data and default browser are not touched. Sign in yourself, then close the window. The site then
@@ -158,6 +177,7 @@ screen; nothing is sent until you press Submit.
 git pull
 make install
 make build            # or `make serve`, which builds too
+# Windows: git pull, then powershell -ExecutionPolicy Bypass -File scripts\windows.ps1 update
 ```
 
 Your data, `.env` and answers are untouched by updates. The database gains new columns by itself on start.
@@ -168,14 +188,15 @@ Your data, `.env` and answers are untouched by updates. The database gains new c
 |---|---|
 | "AI not ready" in the sidebar | Settings → AI shows the reason; `uv run jobagent doctor` too. CLI providers: sign in again (`codex login` / `claude`). API: check the key line in `.env`, then restart. |
 | "AI call budget reached" | The caps in `.env` were reached. Wait for the window to pass, or raise `JOBAGENT_LLM_MAX_CALLS_*`. |
-| Port 8000 already in use | Another JobPilot (maybe the background service) is running. Use it, or `make launchd-remove`, or set `JOBAGENT_PORT`. |
+| Port 8000 already in use | Another JobPilot (maybe the background service) is running. Use it, remove the service (`make launchd-remove` / `windows.ps1 startup-remove`), or set `JOBAGENT_PORT`. |
 | Form filling fails to start a browser | `uv run playwright install chromium` |
+| Windows: "running scripts is disabled" | Start the script as shown, with `powershell -ExecutionPolicy Bypass -File scripts\windows.ps1 …`; it changes nothing system-wide. |
 | A job site shows "needs sign-in" or "blocked" | Sign in (step 6). If it still refuses, the site doesn't allow automated visits: turn that source off, use its official API if it has one, or apply there by hand. JobPilot doesn't disguise itself. |
 | "JobPilot's browser is busy" when signing in | A run is reading sites, or a sign-in window is still open. Close the window or wait for the run (or press Stop). |
 | A job I saw last month is gone | The Jobs page keeps jobs found in the last 30 days and Today the last 7. Jobs you applied to always stay. |
-| The page is blank after updating | `make build`, then reload the page. |
+| The page is blank after updating | `make build` (Windows: `windows.ps1 build`), then reload the page. |
 
 ## Removing it
 
-Stop it (`make launchd-remove` if you installed the background service) and delete the folder. Everything JobPilot
+Stop it (`make launchd-remove` on macOS or `windows.ps1 startup-remove` on Windows, if you set it to start at log-in) and delete the folder. Everything JobPilot
 stored is inside it: `data/` (database, resume, browser sessions), `.env` and `config/answer_bank.yaml`.

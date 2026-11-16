@@ -1,0 +1,89 @@
+name: CI
+
+# Every push and pull request: install from scratch, test, build and start JobPilot on Windows, macOS and Linux.
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    env:
+      JOBAGENT_SCHEDULER_ENABLED: "false"
+      PYTHONUTF8: "0"            # test the real default text encoding (cp1252 on Windows), not UTF-8 mode
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Python packages
+        run: uv sync
+      - name: Install the browser for form filling
+        shell: bash
+        run: |
+          if [ "$RUNNER_OS" = "Linux" ]; then uv run playwright install --with-deps chromium; else uv run playwright install chromium; fi
+
+      - name: Lint
+        run: uv run ruff check backend
+      - name: Tests
+        run: uv run pytest -q
+
+      - name: Web app (typecheck and build)
+        working-directory: web
+        run: |
+          npm ci
+          npm run typecheck
+          npm run build
+
+      - name: First run (init and the setup checklist)
+        run: |
+          uv run jobagent init
+          uv run jobagent doctor --json
+
+      - name: Serve and answer (macOS, Linux)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          uv run jobagent serve > server.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:8000/api/pipeline/health > /dev/null && break; sleep 1; done
+          curl -sf http://127.0.0.1:8000/api/pipeline/health
+          curl -sf -o /dev/null -w "UI %{http_code}\n" http://127.0.0.1:8000/
+          curl -sf http://127.0.0.1:8000/api/today > /dev/null
+          kill %1 || true
+
+      - name: Serve and answer (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $server = Start-Process uv -ArgumentList "run","jobagent","serve" -PassThru -NoNewWindow -RedirectStandardOutput server.log -RedirectStandardError server.err.log
+          $ok = $false
+          foreach ($i in 1..60) { try { Invoke-RestMethod http://127.0.0.1:8000/api/pipeline/health | Out-Null; $ok = $true; break } catch { Start-Sleep 1 } }
+          if (-not $ok) { Get-Content server.log, server.err.log -ErrorAction SilentlyContinue; throw "server did not answer" }
+          (Invoke-WebRequest http://127.0.0.1:8000/ -UseBasicParsing).StatusCode
+          Invoke-RestMethod http://127.0.0.1:8000/api/today | Out-Null
+          Stop-Process -Id $server.Id -Force
+          Get-Process python -ErrorAction SilentlyContinue | Stop-Process -Force
+
+      - name: Windows script (install, start at log-in, remove)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File scripts\windows.ps1 install
+          powershell -ExecutionPolicy Bypass -File scripts\windows.ps1 startup-install
+          $ok = $false
+          foreach ($i in 1..90) { try { Invoke-RestMethod http://127.0.0.1:8000/api/pipeline/health | Out-Null; $ok = $true; break } catch { Start-Sleep 1 } }
+          Get-ScheduledTask -TaskName JobPilot | Format-List TaskName, State
+          if (-not $ok) { Get-Content data\server.log -ErrorAction SilentlyContinue; throw "the log-in task did not start JobPilot" }
+          powershell -ExecutionPolicy Bypass -File scripts\windows.ps1 startup-remove
+          if (Get-ScheduledTask -TaskName JobPilot -ErrorAction SilentlyContinue) { throw "task not removed" }

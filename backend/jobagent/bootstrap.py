@@ -48,15 +48,9 @@ def ensure_profile(db: Session) -> Profile:
 
 def _alive(pid: int | None) -> bool:
     """True if another process with this id is still running (a CLI fill or crawl, say)."""
-    if not pid or pid == os.getpid():
-        return False
-    try:
-        os.kill(pid, 0)
-    except ProcessLookupError:
-        return False
-    except PermissionError:
-        return True
-    return True
+    from .utils.proc import pid_alive
+
+    return bool(pid) and pid != os.getpid() and pid_alive(pid)
 
 
 def recover_interrupted(db: Session) -> int:

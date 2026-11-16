@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any
 
@@ -229,12 +230,15 @@ def readiness() -> list[dict[str, Any]]:
     version = ""
     if node:
         try:
-            version = subprocess.run([node, "--version"], capture_output=True, text=True, timeout=10).stdout.strip()
+            version = subprocess.run([node, "--version"], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=10).stdout.strip()
         except Exception:
             pass
     major = int(version.lstrip("v").split(".")[0]) if version.lstrip("v").split(".")[0].isdigit() else 0
     add("Node.js 20+", major >= 20, version or "not found", "Install Node 20 or newer (macOS: `brew install node`).")
-    caches = (Path.home() / "Library/Caches/ms-playwright", Path.home() / ".cache/ms-playwright")
+    # Where Playwright keeps its browsers on each system (or PLAYWRIGHT_BROWSERS_PATH when set).
+    caches = [Path(p) for p in (os.environ.get("PLAYWRIGHT_BROWSERS_PATH"),
+                                os.path.join(os.environ.get("LOCALAPPDATA") or "", "ms-playwright")) if p and p != "0"]
+    caches += [Path.home() / "Library/Caches/ms-playwright", Path.home() / ".cache/ms-playwright"]
     chromium = bool(shutil.which("chromium")) or any(any(c.glob("chromium*")) for c in caches if c.exists())
     add("Browser for form filling", chromium, "Playwright Chromium" if chromium else "missing",
         "Run `uv run playwright install chromium`.")

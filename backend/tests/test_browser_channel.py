@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import os
 import subprocess
+import sys
 import time
 
 import pytest
@@ -37,6 +38,7 @@ def test_the_clicking_browser_picks_the_channel(installed, monkeypatch):
     assert browser.channel_for_user_agent(CHROME_UA) == ""                 # not installed: JobPilot's Chromium
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Chromium uses a symlink lock on macOS and Linux only")
 def test_a_live_lock_means_busy_and_a_stale_one_does_not(tmp_path):
     lock = tmp_path / "SingletonLock"
     os.symlink(f"myhost-{os.getpid()}", lock)

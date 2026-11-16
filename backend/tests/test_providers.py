@@ -87,9 +87,11 @@ def test_openai_compatible_errors_and_keys(monkeypatch, keys):
 
 def test_claude_cli_runs_with_every_tool_off_and_reads_the_structured_reply(monkeypatch):
     calls: list[list[str]] = []
+    inputs: list[str] = []
 
     def run(args, **kw):
         calls.append(args)
+        inputs.append(kw.get("input"))
         out = {"is_error": False, "result": "", "structured_output": {"fit": 81},
                "modelUsage": {"claude-haiku-4-5": {}, "claude-opus-5-5": {}}}
         return subprocess.CompletedProcess(args, 0, json.dumps(out), "")
@@ -101,7 +103,8 @@ def test_claude_cli_runs_with_every_tool_off_and_reads_the_structured_reply(monk
     a = calls[0]
     assert a[a.index("--tools") + 1] == "" and a[a.index("--setting-sources") + 1] == ""
     assert {"-p", "--strict-mcp-config", "--disable-slash-commands", "--no-session-persistence"} <= set(a)
-    assert json.loads(a[a.index("--json-schema") + 1]) == SCHEMA and a[-1] == "Rate it"
+    assert json.loads(a[a.index("--json-schema") + 1]) == SCHEMA
+    assert inputs == ["Rate it"] and "Rate it" not in a          # the prompt goes in on stdin, never as an argument
 
 
 def test_claude_cli_limits_and_sign_in(monkeypatch):

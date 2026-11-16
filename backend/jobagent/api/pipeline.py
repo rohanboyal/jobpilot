@@ -199,15 +199,17 @@ def browser_login(site: str, request: Request, db: Session = Depends(get_session
     if wanted and wanted != get_setting(db, "browser.channel"):
         set_setting(db, "browser.channel", wanted)          # from now on every browser task uses it (one profile)
     log = get_settings().data_dir / "browser-login.log"
-    with open(log, "w") as out:
-        proc = subprocess.Popen([sys.executable, "-m", "jobagent.cli", "browser-login", url], start_new_session=True,
+    from ..utils.proc import detached
+
+    with open(log, "w", encoding="utf-8") as out:
+        proc = subprocess.Popen([sys.executable, "-m", "jobagent.cli", "browser-login", url], **detached(),
                                 stdout=out, stderr=subprocess.STDOUT)
     try:
         code = proc.wait(timeout=6)            # a window that opens keeps running; a failure exits within seconds
     except subprocess.TimeoutExpired:
         code = None
     if code not in (None, 0):
-        tail = " ".join(log.read_text(errors="replace").split()[-60:])
+        tail = " ".join(log.read_text(encoding="utf-8", errors="replace").split()[-60:])
         raise HTTPException(502, f"The sign-in window could not open: {tail[-400:]}")
     if source:
         pacing.mark_signed_in(db, source)
