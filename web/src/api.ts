@@ -203,5 +203,5 @@ export const getRunEstimate = (stage: 'cycle' | 'collect' | 'analyze', profileId
   request<RunEstimate>(`/pipeline/estimate${qs({ stage, profile_ids: profileIds?.join(','), one_by_one: oneByOne })}`)
 export const startSubmitApproved = (limit?: number) => post<Task>('/pipeline/submit-approved', { limit: limit ?? null })
 export const stopTasks = (taskId?: string) => post<{ stopping: string[] }>(`/pipeline/stop${qs({ task_id: taskId })}`)
-export const browserLogin = (site: string) => post<{ ok: boolean; url: string; note: string }>(`/pipeline/browser-login${qs({ site })}`)
-export const forgetBrowserLogin = (site: string) => del<{ ok: boolean }>(`/pipeline/browser-login${qs({ site })}`)
+export const browserLogin = (site: string) => post<{ ok: boolean; url: string; note: string; browser: string }>(`/pipeline/browser-login${qs({ site })}`)
+export const forgetBrowserLogin = (site: string) => del<{ ok: boolean; domain: string | null; removed: number }>(`/pipeline/browser-login${qs({ site })}`)

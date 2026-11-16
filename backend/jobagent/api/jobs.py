@@ -16,6 +16,7 @@ from ..pipeline.prepare import AlreadySent, apply_method, prepare_application
 from ..pipeline.profile import profile_text
 from ..pipeline.scoring import score_job
 from ..schemas import ApplicationOut, JobDetail, JobOut, JobPatch, Page, StatusChange
+from ..settings_store import get_setting
 from ..sources.base import all_sources
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
@@ -54,10 +55,14 @@ def job_query(
     found_within_days: int | None = None, profile_id: int | None = None, max_experience: float | None = None,
     work_mode: str | None = None, job_type: str | None = None, min_salary_inr: float | None = None,
     salary_shown: bool = False, include_unstated: bool = True, company_id: int | None = None,
-    include_duplicates: bool = False,
+    include_duplicates: bool = False, keep_days: int | None = None,
 ) -> Select:
     """The Jobs list filters as one query, shared with the Today page so its numbers match the lists they open."""
     stmt = select(Job)
+    if keep_days:      # found longer ago: out of the lists, unless the user applied or has an application under way
+        stmt = stmt.where(or_(Job.discovered_at >= utcnow() - timedelta(days=keep_days),
+                              Job.status.in_([JobStatus.APPLYING, JobStatus.APPLIED]),
+                              exists().where(Application.job_id == Job.id)))
     if status:
         stmt = stmt.where(Job.status.in_(_csv(status)))
     if source:
@@ -124,7 +129,16 @@ def job_query(
     return stmt
 
 
+def keep_days(db: Session) -> int:
+    """How long a found job stays in the lists (0 = forever)."""
+    try:
+        return max(0, int(get_setting(db, "jobs.keep_days") or 0))
+    except (TypeError, ValueError):
+        return 30
+
+
 def count_jobs(db: Session, **filters) -> int:
+    filters.setdefault("keep_days", keep_days(db))
     return db.scalar(select(func.count()).select_from(job_query(**filters).subquery())) or 0
 
 
@@ -161,6 +175,7 @@ def list_jobs(
     page_size: int = 50,
 ):
     stmt = job_query(
+        keep_days=keep_days(db),
         status=status, source=source, source_kind=source_kind, q=q, where=where, min_fit=min_fit, unscored=unscored,
         min_trust=min_trust, remote=remote, autofill=autofill, not_applied=not_applied, in_progress=in_progress,
         applied=applied, posted_within_days=posted_within_days, found_today=found_today,

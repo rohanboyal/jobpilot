@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable
+from datetime import timedelta
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -157,6 +158,12 @@ def score_queued(db: Session, limit: int | None = None, log: Callable[[str], Non
         return {"scored": 0, "shortlisted": 0, "errors": 0, "stopped": "",
                 "remaining": db.scalar(select(func.count(Job.id)).where(Job.status == JobStatus.QUEUED)) or 0}
     stmt = select(Job).where(Job.status == JobStatus.QUEUED)
+    try:
+        keep = int(get_setting(db, "jobs.keep_days") or 0)
+    except (TypeError, ValueError):
+        keep = 30
+    if keep:           # found longer ago than the Jobs lists keep: not worth an AI call
+        stmt = stmt.where(Job.discovered_at >= utcnow() - timedelta(days=keep))
     if profile_ids is not None:
         stmt = stmt.where(matches_any(profile_ids))
     rows = db.scalars(

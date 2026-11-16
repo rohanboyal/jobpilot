@@ -3,7 +3,7 @@ from __future__ import annotations
 import subprocess
 import sys
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -163,9 +163,8 @@ def estimate(stage: str = "cycle", profile_ids: str | None = None, one_by_one: b
     return {"collect_ai": collect, "analyze_ai": analyze, "total_ai": collect + analyze, "left": max(0, left)}
 
 
-@router.post("/browser-login")
-def browser_login(site: str, db: Session = Depends(get_session)):
-    """Open a visible Chromium window on the site's login page using the shared profile. Close it when done."""
+def _login_url(site: str) -> tuple[str, str | None]:
+    """The sign-in page for a source name (or a full URL), and the source it belongs to."""
     url = source = None
     for name, cls in all_sources().items():
         if name == site or name == f"site_{site}":
@@ -179,17 +178,65 @@ def browser_login(site: str, db: Session = Depends(get_session)):
             url = site
         else:
             raise HTTPException(400, f"no login url known for '{site}'; pass a full URL instead")
-    subprocess.Popen([sys.executable, "-m", "jobagent.cli", "browser-login", url], start_new_session=True)
+    return url, source
+
+
+@router.post("/browser-login")
+def browser_login(site: str, request: Request, db: Session = Depends(get_session)):
+    """Open a visible window on the site's login page with JobPilot's own profile. Close it when done.
+
+    The window opens in the browser the user clicked from when it is installed (Chrome or Edge, a separate profile:
+    their own browser data and the system's default browser are left alone); otherwise in JobPilot's Chromium."""
+    from ..browser import CHANNELS, browser_label, channel_for_user_agent, profile_in_use
+    from ..settings_store import get_setting, set_setting
+
+    url, source = _login_url(site)
+    if profile_in_use():
+        busy = "a run is reading job sites right now" if tasks.running() else "a sign-in window is still open"
+        raise HTTPException(409, f"JobPilot's browser is busy: {busy}. Close that window, or wait for the run to finish "
+                                 "(or press Stop), then try again.")
+    wanted = channel_for_user_agent(request.headers.get("user-agent", ""))
+    if wanted and wanted != get_setting(db, "browser.channel"):
+        set_setting(db, "browser.channel", wanted)          # from now on every browser task uses it (one profile)
+    log = get_settings().data_dir / "browser-login.log"
+    with open(log, "w") as out:
+        proc = subprocess.Popen([sys.executable, "-m", "jobagent.cli", "browser-login", url], start_new_session=True,
+                                stdout=out, stderr=subprocess.STDOUT)
+    try:
+        code = proc.wait(timeout=6)            # a window that opens keeps running; a failure exits within seconds
+    except subprocess.TimeoutExpired:
+        code = None
+    if code not in (None, 0):
+        tail = " ".join(log.read_text(errors="replace").split()[-60:])
+        raise HTTPException(502, f"The sign-in window could not open: {tail[-400:]}")
     if source:
         pacing.mark_signed_in(db, source)
-    return {"ok": True, "url": url, "note": "A browser window opened on your Mac. Sign in, then close it."}
+    where = browser_label()
+    extra = " (a separate JobPilot profile: your own browsing data isn't touched)" if where in \
+        [str(c["label"]) for c in CHANNELS.values()] else ""
+    return {"ok": True, "url": url, "browser": where,
+            "note": f"A {where} window opened{extra}. Sign in there, then close the window."}
 
 
 @router.delete("/browser-login")
 def forget_browser_login(site: str, db: Session = Depends(get_session)):
-    """The user says they are not signed in to this site: it goes back to the normal pace."""
+    """Sign out: delete the site's cookies from JobPilot's own profile, and read it at the normal pace again."""
+    from ..browser import profile_in_use, sign_out_of
+    from ..utils.text import domain_of
+
+    try:
+        url, _ = _login_url(site)
+    except HTTPException:
+        url = ""
+    domain = domain_of(url) if url else None
+    removed = 0
+    if domain:
+        if profile_in_use():
+            busy = "a run is reading job sites right now" if tasks.running() else "a sign-in window is still open"
+            raise HTTPException(409, f"JobPilot's browser is busy: {busy}. Try signing out when it's free.")
+        removed = sign_out_of(domain)
     pacing.mark_signed_in(db, site, on=False)
-    return {"ok": True}
+    return {"ok": True, "domain": domain, "removed": removed}
 
 
 @router.get("/health")

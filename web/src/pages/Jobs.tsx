@@ -151,6 +151,7 @@ export default function Jobs() {
   })
   const profiles = useQuery({ queryKey: ['profiles'], queryFn: listProfiles, staleTime: 60_000 })
   const settings = useQuery({ queryKey: ['settings'], queryFn: getSettings, staleTime: 60_000 })
+  const keepDays = Number(settings.data?.runtime['jobs.keep_days'] ?? settings.data?.runtime_defaults['jobs.keep_days'] ?? 30)
   // Last known tab counts, shown while new ones load so the tabs don't flicker on every filter change.
   const shownCounts = useRef<Array<number | undefined>>([])
   counts.forEach((c, i) => { if (c.data !== undefined) shownCounts.current[i] = c.data })
@@ -218,7 +219,7 @@ export default function Jobs() {
       <TaskBanner />
       <header>
         <h2 className="page-title">Jobs</h2>
-        <p className="mt-1.5 text-sm text-ink-2">Everything collected for your profiles. Apply directly, or let the schedule analyze them.</p>
+        <p className="mt-1.5 text-sm text-ink-2">Everything collected for your profiles in the last {keepDays} days. Apply directly, or let the schedule analyze them. Jobs you applied to always stay.</p>
       </header>
 
       <div role="tablist" aria-label="Views" className="scroll-thin -mx-3 flex items-center gap-2 overflow-x-auto px-3 pb-1 md:mx-0 md:flex-wrap md:overflow-visible md:px-0 md:pb-0">

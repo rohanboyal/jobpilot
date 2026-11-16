@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from ..utils.http import get_json, make_client
-from ..utils.text import fix_mojibake, html_to_text, parse_date
+from ..utils.text import fix_mojibake, html_to_text, parse_date, title_has
 from .base import RawJob, Source, SourceContext, register
 
 
@@ -28,7 +28,7 @@ class RemoteOK(Source):
             title = fix_mojibake(j.get("position") or "")
             tags = [t.lower() for t in (j.get("tags") or [])]
             hay = title.lower()
-            if kws and not (any(k in hay for k in kws) or any(s in tags for s in skills)):
+            if kws and not (any(title_has(hay, k) for k in kws) or any(s in tags for s in skills)):
                 continue
             sal = None
             if j.get("salary_min") or j.get("salary_max"):

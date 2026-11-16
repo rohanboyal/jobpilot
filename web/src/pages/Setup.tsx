@@ -237,8 +237,8 @@ function SourcesStep() {
   })
   const login = useMutation({
     mutationFn: (site: string) => browserLogin(site),
-    onSuccess: (r) => toast.success('A browser window opened on your Mac', `${r.url}: sign in, then close the window.`),
-    onError: (e) => toast.error('Could not open the browser', errorMessage(e)),
+    onSuccess: (r) => toast.success(`${r.browser} opened`, r.note),
+    onError: (e) => toast.error('Could not open the sign-in window', errorMessage(e)),
   })
   return (
     <>

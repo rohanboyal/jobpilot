@@ -60,6 +60,14 @@ export default function ProfileEditor({ row, onDeleted, onDirtyChange, canDelete
   const years = me.data?.years_experience
   const lpa = s.min_salary_inr ? s.min_salary_inr / 100_000 : ''
   const usdK = s.min_salary_usd ? s.min_salary_usd / 1000 : ''
+  // Does this profile search for the kind of job its resume is aimed at? (The resume analysis suggests titles.)
+  const extra = (me.data?.extra ?? {}) as { suggested_roles?: string[]; suggested_title_keywords?: string[] }
+  const suggested = extra.suggested_roles ?? []
+  const fromResume = resumeTitles(suggested, extra.suggested_title_keywords ?? [])
+  const wordStart = (text: string, k: string) => new RegExp(`(^|[^a-z0-9])${k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}${k.length <= 3 ? '(?![a-z0-9])' : ''}`).test(text)
+  const searched = [...s.roles, ...s.title_keywords].join(' | ').toLowerCase()
+  const mismatch = suggested.length > 0 && fromResume.length > 0 && searched.trim() !== '' && !fromResume.some((k) => wordStart(searched, k))
+  const useResumeTitles = () => setS((x) => ({ ...x, roles: suggested.slice(0, 6), title_keywords: fromResume }))
   const toggleType = (t: string) => upd('job_types', s.job_types.includes(t) ? s.job_types.filter((x) => x !== t) : [...s.job_types, t])
 
   return (
@@ -78,6 +86,15 @@ export default function ProfileEditor({ row, onDeleted, onDirtyChange, canDelete
         <Button variant="ghost" icon={Trash2} className="ml-auto" onClick={() => setConfirmDelete(true)} loading={del.isPending} disabled={!canDelete}
           title={canDelete ? 'Delete this search profile' : 'Keep at least one profile. Turn this one off or change it instead.'}>Delete profile</Button>
       </div>
+
+      {mismatch && (
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[color-mix(in_oklab,var(--warn)_45%,transparent)] bg-[color-mix(in_oklab,var(--warn)_8%,transparent)] px-4 py-3 text-[13px]">
+          <span className="min-w-[240px] flex-1">
+            <strong>These job titles don&rsquo;t match its resume.</strong> {me.data?.name ?? 'The resume'} is aimed at {suggested.slice(0, 3).join(', ')}, but this profile searches for {s.roles.slice(0, 3).join(', ') || 'other titles'}.
+          </span>
+          <Button size="sm" variant="outline" onClick={useResumeTitles} title="Fills the job titles and title words from the resume analysis (no AI call). Check them, then save.">Use my resume&rsquo;s titles</Button>
+        </div>
+      )}
 
       <Group title="What you want">
         <div className="grid gap-4 md:grid-cols-2">
@@ -184,4 +201,19 @@ function Pill({ on, onClick, children }: { on: boolean; onClick: () => void; chi
       className={clsx('h-9 rounded-lg border px-3.5 text-[13px] font-semibold transition-colors',
         on ? 'border-[var(--accent)] bg-accent text-on-accent' : 'border-[var(--baseline)] bg-surface text-ink-2 hover:text-ink')}>{children}</button>
   )
+}
+
+/** Title words from a resume analysis: its suggested words plus the acronyms in its suggested titles (AI, LLM, ML…),
+ *  without generic words that would match nearly every job (the server cleans them the same way). */
+const GENERIC = new Set(['engineer', 'engineers', 'engineering', 'developer', 'developers', 'development', 'software', 'senior', 'sr',
+  'junior', 'jr', 'lead', 'staff', 'principal', 'intern', 'internship', 'full', 'stack', 'specialist', 'associate', 'manager',
+  'consultant', 'analyst', 'architect', 'programmer', 'applied', 'artificial', 'intelligence', 'remote'])
+function resumeTitles(roles: string[], words: string[]): string[] {
+  const acronyms = roles.flatMap((r) => r.match(/\b[A-Z]{2,4}\b/g) ?? [])
+  const out: string[] = []
+  for (const w of [...acronyms, ...words]) {
+    const k = w.toLowerCase().split(/\s+/).filter(Boolean).join(' ')
+    if (k && !GENERIC.has(k) && !out.includes(k)) out.push(k)
+  }
+  return out.slice(0, 12)
 }

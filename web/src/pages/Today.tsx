@@ -6,7 +6,7 @@ import { ApiError, getToday, setJobStatus, submitApplication } from '../api'
 import type { ApplicationWithJob, Outcome, Today as TodayData } from '../types'
 import { useToast } from '../lib/toast'
 import { errorMessage } from '../lib/tasks'
-import { fmtRelative } from '../lib/format'
+import { foundAgo, fmtRelative } from '../lib/format'
 import { fmtClock, fmtDays, useRunControl } from '../lib/runControl'
 import { Button, EmptyState, Spinner } from '../components/ui'
 import RunDialog from '../components/RunDialog'
@@ -89,12 +89,18 @@ function TodayView({ t }: { t: TodayData }) {
         <section aria-labelledby="needs-you" className="flex min-w-0 flex-col gap-3" style={{ flex: '999 1 520px' }}>
           <h3 id="needs-you" className="flex items-center gap-2 text-[17px] font-bold">
             <span className="h-2.5 w-2.5 rounded-full" style={{ background: 'var(--warn)' }} />Waiting for your approval
+            <span className="text-xs font-normal text-muted">jobs found in the last {t.recent_days} days</span>
           </h3>
           {t.approvals.length ? t.approvals.map((a) => <ApprovalCard key={a.id} a={a} />) : (
             <div className="card">
               <EmptyState icon={Check} title="Nothing waiting for you"
                 hint={t.stages.analyze.waiting ? `${t.stages.analyze.waiting} collected jobs are waiting to be analyzed.` : 'New matches show up here after Analyze runs.'} />
             </div>
+          )}
+          {t.older_approvals > 0 && (
+            <Link to="/applications?status=needs_review" className="text-[13px] font-semibold">
+              {t.older_approvals} older application{t.older_approvals === 1 ? '' : 's'} (jobs found more than {t.recent_days} days ago) in Applications →
+            </Link>
           )}
           {t.follow_ups.length > 0 && (
             <>
@@ -122,6 +128,7 @@ function TodayView({ t }: { t: TodayData }) {
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-semibold">{j.title}</span>
                   <span className="block truncate text-xs text-ink-2">{j.company_name}{j.location ? ` · ${j.location}` : ''}</span>
+                  <span className="block text-[11px] text-muted">{foundAgo(j.discovered_at)}</span>
                 </span>
               </Link>
             )) : <div className="px-4 py-5 text-[13px] text-ink-2">No shortlisted jobs yet. Jobs scoring {t.min_fit}+ appear here.</div>}
@@ -200,7 +207,8 @@ function ApprovalCard({ a }: { a: ApplicationWithJob }) {
         <FitBadge score={a.job.fit_score} size="lg" />
         <div className="min-w-0 flex-1">
           <div className="text-base font-bold">{a.job.title}</div>
-          <div className="mt-0.5 text-[13px] text-ink-2">{a.job.company_name}{a.job.location ? ` · ${a.job.location}` : ''}</div>
+          <div className="mt-0.5 text-[13px] text-ink-2">{a.job.company_name}{a.job.location ? ` · ${a.job.location}` : ''}
+            <span className="whitespace-nowrap text-muted" title={`JobPilot found this job ${fmtRelative(a.job.discovered_at)}. The posting date is in the job's details.`}> · {foundAgo(a.job.discovered_at)}</span></div>
           {why && <p className="mt-2 text-sm leading-relaxed text-ink-2">{why}</p>}
         </div>
       </div>

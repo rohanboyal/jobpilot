@@ -144,7 +144,8 @@ The cheap prefilter (title keywords, location, age, skills) means only plausible
 
 ## The UI
 
-**Today** (approvals, follow-ups, strong matches, sources needing attention, the week), **Jobs** (filters, saved views,
+**Today** (approvals, follow-ups and strong matches from jobs found in the last 7 days, each saying when it was found;
+sources needing attention, the week), **Jobs** (jobs found in the last 30 days; applied ones always stay; filters, saved views,
 bulk analyze/prepare, direct apply), **Applications** (review queue, editable letter and answers, fill-only dry run with
 screenshot, submit, outcome tracking), **Profiles & resume** (search profiles with standard filters, resume details),
 **Schedule** (stage days, times, caps and the weekly AI estimate), **Settings** (sources with health and sign-in, job
@@ -181,10 +182,14 @@ web/              React + Vite + Tailwind UI
 
 ## Notes on terms of use
 
-API-based sources are used as intended by their operators. Browser sources read pages the way you would in your
-own browser, with low volume and your own saved session; sites such as LinkedIn, Indeed and Glassdoor prohibit
-automated access in their terms, so those sources are off by default and marked *fragile*. Use them at your own
-discretion.
+API-based sources are used as intended by their operators. Browser sources read pages at low volume with your own
+saved session; sites such as LinkedIn, Indeed and Glassdoor prohibit automated access in their terms, so those sources
+are off by default and marked *fragile*. Use them at your own discretion.
+
+JobPilot says what it is: plain requests identify as `JobPilot/0.1`, and the browser keeps its own user agent and
+automation flag. It does not disguise itself, fake a browser fingerprint or solve CAPTCHAs, and it won't be changed to.
+Some sites refuse automated visitors; when one does, Settings shows it as blocked. Turn that source off, use the site's
+official API if it has one, or apply there by hand. Disguising a bot on your real account is how accounts get banned.
 
 Everything runs on your own computer with your own accounts: your resume, answers, sign-ins and job data stay in
 `data/` and `config/answer_bank.yaml`, which are never committed. You are responsible for what you send: review

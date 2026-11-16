@@ -15,6 +15,7 @@ from ..config import get_settings, load_answer_bank
 from ..llm.client import run_llm
 from ..llm.prompts import PROFILE_SCHEMA, PROFILE_SYSTEM, build_profile_prompt
 from ..models import Application, Job, Profile, SearchProfileRow, utcnow
+from ..profiles import clean_title_keywords
 
 
 def extract_text(path: Path) -> str:
@@ -140,7 +141,8 @@ def analyze_profile(db: Session, resume_id: int = 1) -> dict:
         result["years_experience"] = dated
     p.years_experience = result.get("years_experience", p.years_experience)
     p.extra = {**(p.extra or {}), "suggested_roles": result.get("suggested_roles"),
-               "suggested_title_keywords": result.get("suggested_title_keywords"), "seniority": result.get("seniority"),
+               "suggested_title_keywords": clean_title_keywords(result.get("suggested_title_keywords") or []),
+               "seniority": result.get("seniority"),
                **{k: result.get(k) or ([] if k != "contact" else {})
                   for k in ("experience", "education", "projects", "certifications", "languages", "contact")}}
     db.commit()

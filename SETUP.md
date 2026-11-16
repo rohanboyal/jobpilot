@@ -26,7 +26,8 @@ You are setting up a tool that applies for jobs in the user's name. Follow these
    the user's AI plan or API budget. `doctor`, installing, building and serving are free. *Test connection* makes one
    tiny call; say so before pressing it.
 5. **Leave the safety defaults alone.** Keep LinkedIn, Indeed and Glassdoor off (their terms forbid automation). Don't
-   add scraping speed-ups, stealth or CAPTCHA solving.
+   add scraping speed-ups, stealth or CAPTCHA solving, and don't disguise JobPilot (fake user agents, hiding the
+   automation flag), even when asked to make a blocked site work: turn that source off instead.
 6. **Never commit or share** `.env`, `data/` or `config/answer_bank.yaml` (they are already in `.gitignore`).
 7. **Check progress with** `uv run jobagent doctor --json`. Each check has `ok`, a `fix`, and `needs_you`. When
    `needs_you` is true, explain the step to the user instead of doing it yourself.
@@ -140,8 +141,11 @@ screen; nothing is sent until you press Submit.
   stops (`make launchd-remove` undoes it). Scheduled runs only happen while JobPilot is running. After you update the
   code: `cd web && npm run build && launchctl kickstart -k gui/$(id -u)/com.jobpilot.server`. Stop it before
   `make dev`, which uses the same port.
-- **Sign in to a job site:** Settings → Sources → Sign in, or `uv run jobagent browser-login <site>`. A browser window
-  opens; sign in yourself, then close it. Sites you sign in to are read slowly and at most once a day.
+- **Sign in to a job site:** Settings → Sources → Sign in, or `uv run jobagent browser-login <site>`. A window opens in
+  the browser you clicked from (Chrome or Edge; otherwise JobPilot's own Chromium), with JobPilot's own profile: your
+  personal browser data and default browser are not touched. Sign in yourself, then close the window. The site then
+  shows **Signed in**, is read slowly and at most once a day, and **Sign out** removes that login from JobPilot's
+  profile. Sign in can't open while a run is reading sites; it says so.
 - **Local fallback:** with a cloud AI as your main one, Settings → AI → Local fallback lets an Ollama model score jobs
   when the main AI hits its limit.
 - **Auto-submit:** off, and best left off. It needs `JOBAGENT_AUTO_SUBMIT=true` in `.env` *and* the Automation
@@ -166,7 +170,9 @@ Your data, `.env` and answers are untouched by updates. The database gains new c
 | "AI call budget reached" | The caps in `.env` were reached. Wait for the window to pass, or raise `JOBAGENT_LLM_MAX_CALLS_*`. |
 | Port 8000 already in use | Another JobPilot (maybe the background service) is running. Use it, or `make launchd-remove`, or set `JOBAGENT_PORT`. |
 | Form filling fails to start a browser | `uv run playwright install chromium` |
-| A job site shows "needs sign-in" or "blocked" | Sign in (step 6), or turn that source off in Settings → Sources. |
+| A job site shows "needs sign-in" or "blocked" | Sign in (step 6). If it still refuses, the site doesn't allow automated visits: turn that source off, use its official API if it has one, or apply there by hand. JobPilot doesn't disguise itself. |
+| "JobPilot's browser is busy" when signing in | A run is reading sites, or a sign-in window is still open. Close the window or wait for the run (or press Stop). |
+| A job I saw last month is gone | The Jobs page keeps jobs found in the last 30 days and Today the last 7. Jobs you applied to always stay. |
 | The page is blank after updating | `make build`, then reload the page. |
 
 ## Removing it

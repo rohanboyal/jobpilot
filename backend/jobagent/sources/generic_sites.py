@@ -86,7 +86,10 @@ class GenericSite(Source):
                         try:
                             cards = self._cards(ctx, page, page_url)
                         except Exception as e:
-                            ctx.log(f"{self.label} {term}/{where}: {e}")
+                            if "HTTP 404" in str(e):      # the site has no page for that title in that place
+                                ctx.log(f"{self.label}: no '{term}' page for {where or 'anywhere'} on this site, skipped")
+                            else:
+                                ctx.log(f"{self.label} {term}/{where}: {e}")
                             break
                         if cards is None:   # blocked
                             ctx.log(f"{self.label}: bot check or login wall. Run `jobagent browser-login {site['key']}`.")

@@ -228,7 +228,11 @@ def test_the_sign_in_button_marks_the_site_and_it_can_be_undone(client, monkeypa
     import jobagent.api.pipeline as api
 
     opened: list[list[str]] = []
-    monkeypatch.setattr(api.subprocess, "Popen", lambda cmd, **k: opened.append(cmd))
+    class _Open:                     # a window that stays open (it started)
+        def wait(self, timeout):
+            raise api.subprocess.TimeoutExpired(cmd="x", timeout=timeout)
+
+    monkeypatch.setattr(api.subprocess, "Popen", lambda cmd, **k: opened.append(cmd) or _Open())
     assert client.post("/api/pipeline/browser-login?site=site_wellfound").status_code == 200
     assert opened
 
@@ -236,5 +240,8 @@ def test_the_sign_in_button_marks_the_site_and_it_can_be_undone(client, monkeypa
         return next(s for s in client.get("/api/settings/sources").json() if s["name"] == "site_wellfound")
 
     assert row()["signed_in"] is True
+    import jobagent.browser as browser_mod
+
+    monkeypatch.setattr(browser_mod, "sign_out_of", lambda domain: 0)     # Popen is faked above: no real browser
     assert client.delete("/api/pipeline/browser-login?site=site_wellfound").status_code == 200
     assert row()["signed_in"] is False

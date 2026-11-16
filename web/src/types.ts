@@ -310,6 +310,8 @@ export interface SavedView { id: string; name: string; query: string }
 export interface Today {
   approvals: Array<ApplicationWithJob>
   manual_count: number
+  recent_days: number
+  older_approvals: number
   follow_ups: Array<ApplicationWithJob>
   outcomes: Partial<Record<Outcome, number>>
   sources_attention: Array<{ source: string; health: string; note: string }>

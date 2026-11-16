@@ -38,8 +38,11 @@ class TheMuse(Source):
     label = "The Muse"
     kind = "board"
     priority = 2
-    description = ("Official public API of themuse.com: software and data roles in your Indian cities and fully remote ones, "
-                   "filtered by your seniority and maximum job age.")
+    default_enabled = False
+    fragile = True
+    description = ("Official public API of themuse.com. Off: since November 2026 the API answers every automated client "
+                   "with a Cloudflare bot check (\"Just a moment...\"), so JobPilot can't read it. Turn it on again only if "
+                   "The Muse reopens the API.")
 
     def fetch(self, ctx: SourceContext) -> Iterable[RawJob]:
         queries: list[list[str]] = []

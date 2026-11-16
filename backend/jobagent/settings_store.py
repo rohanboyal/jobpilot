@@ -18,10 +18,14 @@ DEFAULTS: dict[str, Any] = {
     "apply.mode": "approve",               # approve | auto (needs JOBAGENT_AUTO_SUBMIT) | manual
     "pipeline.min_trust_for_shortlist": 40,
     "jobs.saved_views": [],
+    "jobs.keep_days": 30,                  # Jobs lists and Analyze skip jobs found longer ago (applied ones always stay)
+    "today.recent_days": 7,                # the Today page shows jobs found in the last N days
     "jobs.stale_after_days": 21,           # board/site jobs not seen by any crawl for this long are expired
     "applications.follow_up_days": 10,     # remind to follow up this long after applying                # [{"id", "name", "filters": {...}}] saved from the Jobs page
     "setup.completed": False,
     "browser.signed_in": [],               # sources the user signed in to: read at the careful pace (pacing.py)
+    "browser.channel": "",                 # "" = Playwright's own Chromium; "chrome" / "msedge" = that installed app,
+                                           # picked by the browser the user clicks Sign in from (browser.py)
     "llm.provider": "codex",               # codex | claude | openai | gemini | anthropic | ollama (llm/providers.py)
     "llm.model": "",                       # empty = the provider's default (Codex / Claude Code / Ollama)
     "llm.base_url": "https://api.openai.com/v1",   # for "openai": any OpenAI-compatible server

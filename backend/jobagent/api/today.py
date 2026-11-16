@@ -46,17 +46,26 @@ def today(db: Session = Depends(get_session)):
     midnight = local_midnight_utc()
     min_fit = _setting_int(get_setting(db, "schedule.prepare") or {}, "min_fit", 75)
 
+    # Today is about what's new: jobs found in the last few days. Older ones stay on Jobs and Applications.
+    try:
+        recent_days = max(1, int(get_setting(db, "today.recent_days") or 7))
+    except (TypeError, ValueError):
+        recent_days = 7
+    recent = now - timedelta(days=recent_days)
+    waiting = (Application.status.in_([ApplicationStatus.NEEDS_REVIEW, ApplicationStatus.APPROVED]))
     approvals = db.scalars(
-        select(Application).options(selectinload(Application.job))
-        .where(Application.status.in_([ApplicationStatus.NEEDS_REVIEW, ApplicationStatus.APPROVED]))
+        select(Application).options(selectinload(Application.job)).join(Job, Application.job_id == Job.id)
+        .where(waiting, Job.discovered_at >= recent)
         .order_by(Application.updated_at.desc()).limit(20)
     ).all()
+    older_approvals = db.scalar(select(func.count(Application.id)).join(Job, Application.job_id == Job.id)
+                                .where(waiting, Job.discovered_at < recent)) or 0
     approvals = sorted(approvals, key=lambda a: -(a.job.fit_score or 0))
     manual = db.scalar(select(func.count(Application.id)).where(Application.status == ApplicationStatus.MANUAL)) or 0
 
     strong = db.scalars(
         select(Job).options(selectinload(Job.applications))
-        .where(Job.status == JobStatus.SHORTLISTED, Job.duplicate_of.is_(None))
+        .where(Job.status == JobStatus.SHORTLISTED, Job.duplicate_of.is_(None), Job.discovered_at >= recent)
         .order_by(Job.fit_score.desc(), Job.scored_at.desc()).limit(6)
     ).all()
     new_today = db.scalar(select(func.count(Job.id)).where(Job.discovered_at >= midnight, Job.duplicate_of.is_(None))) or 0
@@ -97,6 +106,8 @@ def today(db: Session = Depends(get_session)):
         "approvals": [ApplicationWithJob.model_validate(a).model_dump() | {"job": _to_out(a.job).model_dump()}
                       for a in approvals],
         "manual_count": manual,
+        "recent_days": recent_days,
+        "older_approvals": older_approvals,
         "follow_ups": [ApplicationWithJob.model_validate(a).model_dump() | {"job": _to_out(a.job).model_dump()} for a in follow],
         "outcomes": {k or "awaiting": v for k, v in outcomes.items()},
         "sources_attention": attention,

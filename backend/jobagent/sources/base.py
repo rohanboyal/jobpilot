@@ -104,6 +104,13 @@ class ATSSource(Source):
                 company.last_error = f"{type(e).__name__}: {str(e)[:300]}"
                 ctx.bump("company_errors")
                 ctx.log(f"  ! {company.name}: {company.last_error}")
+                if getattr(e, "status", None) == 404:   # no board under that name: pause it instead of failing every run
+                    company.is_active = False
+                    note = (f"Paused {utcnow():%Y-%m-%d}: its {self.label} board '{company.ats_slug}' was not found (404). "
+                            "Fix the board name and turn it on again, or delete it.")
+                    company.notes = f"{company.notes}\n{note}".strip() if company.notes else note
+                    ctx.bump("companies_paused")
+                    ctx.log(f"    paused {company.name}: no {self.label} board '{company.ats_slug}'")
                 continue
             company.last_error = None
             company.last_crawled_at = utcnow()
@@ -156,7 +163,9 @@ def title_passes(ctx: SourceContext, title: str | None) -> bool:
     if any(x.lower() in t for x in ctx.search.exclude_keywords if x.strip()):
         return False
     kws = [k.lower() for k in ctx.search.title_keywords if k.strip()]
-    return True if not kws else any(k in t for k in kws)
+    from ..utils.text import title_has
+
+    return True if not kws else any(title_has(t, k) for k in kws)
 
 
 def fetched_within(ctx: SourceContext, source_name: str, hours: float) -> bool:

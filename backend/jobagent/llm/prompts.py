@@ -13,7 +13,10 @@ SCORE_SYSTEM = (
     "You are a meticulous technical recruiter helping ONE specific candidate decide which jobs to apply to. "
     "You read a candidate profile and a job posting and return a strict JSON assessment. "
     "Be calibrated: 90+ means an obvious match they should apply to today; 70-89 a solid match; 50-69 a stretch; "
-    "below 50 do not apply. Judge seniority, core stack, location/remote constraints and visa realities honestly. "
+    "below 50 do not apply. The candidate's target_roles say which kind of job they want: a job outside that kind of "
+    "work scores below 50 even when many skills overlap (a plain backend or web job is not an AI/ML engineering job, a "
+    "data analyst job is not a data scientist job). Judge seniority, core stack, location/remote constraints and visa "
+    "realities honestly. "
     "Also check whether the posting looks like a genuine employer posting rather than a scam or lead-generation ad."
 )
 
@@ -218,9 +221,16 @@ PROFILE_SYSTEM = (
     "You turn a resume into structured fields. Copy facts exactly as written: company names, titles, dates, degrees, "
     "numbers. Do not invent, infer or embellish facts that are not in the text; leave a field empty when the resume "
     "does not say. Dates stay in the resume's own format (e.g. 'Jan 2024', '2022'). Write 'Present' for an ongoing role. "
-    "Two fields are suggestions, not facts, and are always filled: suggested_roles (job titles this person could search "
-    "for, based on the titles, skills and projects in the resume) and suggested_title_keywords (short lowercase words "
-    "those titles contain). seniority is your judgement from the experience shown."
+    "Two fields are suggestions, not facts, and are always filled. suggested_roles: the job titles this resume is aimed "
+    "at, judged from its headline or title line, its objective, the most recent role and the projects. Write them as "
+    "employers usually post them (short, e.g. 'AI Engineer', not the resume's own headline), the most common title "
+    "first (up to 6, all from the same family of work). Do not add broad fallback titles from a "
+    "neighbouring field just because some skills overlap: a resume aimed at AI or ML work gets AI/ML titles, not plain "
+    "backend or full-stack ones, unless the resume itself presents the person that way. suggested_title_keywords: short "
+    "lowercase words or phrases that appear in the titles of those jobs and set them apart from other jobs, including "
+    "the family's short form and close synonyms (for example 'ai', 'llm', 'genai', 'machine learning', 'ml', 'data "
+    "scientist'). Never a generic word on its own such as 'engineer', "
+    "'developer', 'software', 'senior', 'full' or 'stack'. seniority is your judgement from the experience shown."
 )
 
 _STR = {"type": "string"}

@@ -1,12 +1,16 @@
 """Playwright helper: one persistent Chromium profile under data/ so logins and cookies survive between runs.
 
-The browser presents itself as what it is (Playwright's Chromium, with its own user agent and automation flag): no
-disguise. Sites that refuse automated visitors are left alone or read slowly (pacing.py), never tricked."""
+The browser presents itself as what it is (its own user agent and automation flag): no disguise. Sites that refuse
+automated visitors are left alone or read slowly (pacing.py), never tricked."""
 
 from __future__ import annotations
 
+import os
+import re
+import shutil
 from collections.abc import Iterator
 from contextlib import contextmanager
+from pathlib import Path
 
 from playwright.sync_api import BrowserContext, Page, sync_playwright
 
@@ -19,6 +23,77 @@ BLOCK_CHALLENGE_MARKERS = (
 )
 
 
+# Installed browsers JobPilot can drive instead of its own Chromium, always with JobPilot's own profile folder (never
+# the user's personal profile, and nothing about the system's default browser changes).
+CHANNELS: dict[str, dict[str, object]] = {
+    "chrome": {"label": "Google Chrome", "paths": ("/Applications/Google Chrome.app", "~/Applications/Google Chrome.app"),
+               "bins": ("google-chrome", "google-chrome-stable")},
+    "msedge": {"label": "Microsoft Edge", "paths": ("/Applications/Microsoft Edge.app", "~/Applications/Microsoft Edge.app"),
+               "bins": ("microsoft-edge", "microsoft-edge-stable")},
+}
+
+
+def channel_installed(channel: str) -> bool:
+    c = CHANNELS.get(channel)
+    if not c:
+        return False
+    return any(Path(str(p)).expanduser().exists() for p in c["paths"]) or any(shutil.which(str(b)) for b in c["bins"])
+
+
+def channel_for_user_agent(user_agent: str) -> str:
+    """The installed browser matching the one the user clicked from: Edge or Chrome (Chromium-based browsers that send
+    a plain Chrome user agent, such as Brave or Arc, count as Chrome). "" = keep JobPilot's own Chromium."""
+    ua = user_agent or ""
+    if "Edg/" in ua:
+        return "msedge" if channel_installed("msedge") else ""
+    if "Chrome/" in ua and not any(x in ua for x in ("OPR/", "SamsungBrowser")):
+        return "chrome" if channel_installed("chrome") else ""
+    return ""
+
+
+def current_channel() -> str:
+    """The browser JobPilot uses for everything (signing in, reading sites, filling forms): one browser, so the saved
+    profile is never opened by an older version than the last one."""
+    from .db import session_scope
+    from .settings_store import get_setting
+
+    try:
+        with session_scope() as db:
+            channel = str(get_setting(db, "browser.channel") or "")
+    except Exception:          # no database yet (tests, first run)
+        return ""
+    return channel if channel_installed(channel) else ""
+
+
+def browser_label() -> str:
+    channel = current_channel()
+    return str(CHANNELS[channel]["label"]) if channel else "JobPilot's Chromium"
+
+
+def profile_in_use(profile: Path | None = None) -> bool:
+    """True while some browser has JobPilot's profile open (a run reading sites, or a sign-in window): Chromium keeps
+    a SingletonLock link to "host-pid" in the folder, and a second browser can't open the same profile."""
+    lock = (profile or get_settings().browser_profile_dir) / "SingletonLock"
+    if not os.path.lexists(lock):
+        return False
+    try:
+        pid = int(os.readlink(lock).rsplit("-", 1)[-1])
+        os.kill(pid, 0)
+    except (OSError, ValueError):
+        return False           # left behind by a crash: Chromium replaces it
+    return True
+
+
+def sign_out_of(domain: str) -> int:
+    """Sign JobPilot out of a site: delete that site's cookies (and its subdomains') from JobPilot's own profile.
+    Returns how many were removed. The user's own browsers are never touched. The profile must not be in use."""
+    match = re.compile(rf"^\.?([a-z0-9-]+\.)*{re.escape(domain.lower())}$")
+    with launch_context(headless=True) as ctx:
+        removed = sum(1 for c in ctx.cookies() if match.match(str(c.get("domain", "")).lower()))
+        ctx.clear_cookies(domain=match)
+    return removed
+
+
 @contextmanager
 def launch_context(headless: bool | None = None, profile: str | None = None) -> Iterator[BrowserContext]:
     s = get_settings()
@@ -26,9 +101,11 @@ def launch_context(headless: bool | None = None, profile: str | None = None) -> 
         headless = s.browser_headless
     user_data = s.browser_profile_dir if profile is None else (s.data_dir / profile)
     user_data.mkdir(parents=True, exist_ok=True)
+    channel = current_channel()
     with sync_playwright() as p:
         ctx = p.chromium.launch_persistent_context(
             str(user_data),
+            channel=channel or None,
             headless=headless,
             slow_mo=s.browser_slow_mo_ms or None,
             viewport={"width": 1366, "height": 900},

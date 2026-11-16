@@ -8,6 +8,8 @@ only for titles that pass your keywords (a few per run).
 from __future__ import annotations
 
 import json
+import re
+import time
 from collections.abc import Iterable
 from typing import Any
 
@@ -23,8 +25,31 @@ PAGES = 3
 DETAILS_PER_RUN = 15
 
 
-def call_tool(client: httpx.Client, name: str, arguments: dict[str, Any]) -> Any:
-    """One stateless tools/call. The reply is SSE (or JSON); the tool's result is a JSON string in content[0].text."""
+# The free server allows 20 calls a minute per network (shared with anyone else on it): stay under it, and when it
+# still says "try again in N seconds", wait that long once instead of losing the rest of the run.
+_MIN_GAP_S = 3.5
+_last_call = [0.0]
+_RETRY_AFTER = re.compile(r"retryAfterSeconds:\s*(\d+)|try again in (\d+) seconds", re.I)
+
+
+def call_tool(client: httpx.Client, name: str, arguments: dict[str, Any], *, _retry: bool = True) -> Any:
+    """One stateless tools/call, paced under the free limit. The reply is SSE (or JSON); the tool's result is a JSON
+    string in content[0].text."""
+    wait = _last_call[0] + _MIN_GAP_S - time.monotonic()
+    if wait > 0:
+        time.sleep(wait)
+    _last_call[0] = time.monotonic()
+    try:
+        return _call(client, name, arguments)
+    except RuntimeError as e:
+        m = _RETRY_AFTER.search(str(e))
+        if not (_retry and m):
+            raise
+        time.sleep(min(60, int(m.group(1) or m.group(2))) + 1)
+        return call_tool(client, name, arguments, _retry=False)
+
+
+def _call(client: httpx.Client, name: str, arguments: dict[str, Any]) -> Any:
     body = {"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": name, "arguments": arguments}}
     r = client.post(MCP, json=body, headers=_HEADERS)
     if r.status_code >= 400:

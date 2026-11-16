@@ -95,8 +95,16 @@ def from_resume(resume_id: int = 1, db: Session = Depends(get_session)):
     analysis = {**extra, "skills": p.skills or [], "years_experience": p.years_experience}
     first = rows(db)[0]
     sp = from_resume_analysis(analysis, SearchProfile.model_validate(first.data))
-    name = f"{sp.roles[0] if sp.roles else 'My roles'} (from {p.name or 'resume'})"[:100]
-    r = SearchProfileRow(name=name, enabled=True, data=sp.model_dump(), resume_id=_resume_id(db, resume_id))
+    rid = _resume_id(db, resume_id)
+    titles = {t.strip().lower() for t in sp.roles}
+    for other in rows(db):          # the same search with the same resume already exists: don't make a second one
+        if other.resume_id == rid and {t.strip().lower() for t in (other.data or {}).get("roles") or []} == titles:
+            raise HTTPException(409, f"Your profile \"{other.name}\" already searches for these job titles with this "
+                                     "resume. Open it, or change its titles.")
+    taken = {r.name for r in rows(db)}
+    base = (sp.roles[0] if sp.roles else "My search")[:90]
+    name = next(n for n in (base if i == 1 else f"{base} {i}" for i in range(1, 100)) if n not in taken)
+    r = SearchProfileRow(name=name, enabled=True, data=sp.model_dump(), resume_id=rid)
     db.add(r)
     db.commit()
     return {**_out(db, r), "rematch": rematch(db)}

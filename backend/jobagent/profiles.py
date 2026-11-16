@@ -8,6 +8,7 @@ profile's preferences, fit threshold and resume. A run may cover only some profi
 
 from __future__ import annotations
 
+import re
 from itertools import zip_longest
 from typing import Any
 
@@ -118,14 +119,36 @@ def names(db: Session, ids: list[int] | None) -> str:
     return ", ".join(by_id.get(i, f"#{i}") for i in ids)
 
 
+# Words that are in nearly every job title: on their own they would let every job through the title check.
+GENERIC_TITLE_WORDS = frozenset({
+    "engineer", "engineers", "engineering", "developer", "developers", "development", "software", "senior", "sr",
+    "junior", "jr", "lead", "staff", "principal", "intern", "internship", "full", "stack", "specialist", "associate",
+    "manager", "consultant", "analyst", "architect", "programmer", "applied", "artificial", "intelligence", "remote",
+    "the", "and", "of", "for", "with", "i", "ii", "iii",
+})
+
+
+def clean_title_keywords(words: list[str]) -> list[str]:
+    """Title keywords that actually narrow the search: lowercase, de-duplicated, no generic single words.
+    "artificial intelligence" (a phrase) stays; "intelligence" alone would also match "Business Intelligence"."""
+    out: list[str] = []
+    for w in words:
+        k = " ".join(str(w).lower().split())
+        if k and k not in GENERIC_TITLE_WORDS and k not in out:
+            out.append(k)
+    return out
+
+
 def from_resume_analysis(analysis: dict[str, Any], base: SearchProfile | None = None) -> SearchProfile:
     """A first profile built from the AI's resume analysis, keeping places and thresholds from `base`."""
     base = base or load_search_profile()
     data = base.model_dump()
     if analysis.get("suggested_roles"):
         data["roles"] = analysis["suggested_roles"][:6]
-    if analysis.get("suggested_title_keywords"):
-        data["title_keywords"] = [k.lower() for k in analysis["suggested_title_keywords"][:12]]
+    if analysis.get("suggested_title_keywords") or analysis.get("suggested_roles"):
+        # Acronyms in the suggested titles (AI, LLM, ML, NLP…) are the surest sign of the kind of job: always keep them.
+        acronyms = [w for r in analysis.get("suggested_roles") or [] for w in re.findall(r"\b[A-Z]{2,4}\b", r)]
+        data["title_keywords"] = clean_title_keywords([*acronyms, *(analysis.get("suggested_title_keywords") or [])])[:12]
     if analysis.get("skills"):
         data["skills"] = [s.lower() for s in analysis["skills"][:20]]
     years = analysis.get("years_experience")

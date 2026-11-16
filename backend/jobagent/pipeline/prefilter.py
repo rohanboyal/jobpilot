@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from ..config import SearchProfile
 from ..models import Job, JobStatus, utcnow
 from ..utils.jobinfo import annotate
+from ..utils.text import title_has
 
 # Words in a remote job's location that do not tie it to a place. Whatever is left after removing them names a
 # country or city ("Remote - USA", "Dublin"), which means the role is open only there.
@@ -53,7 +54,7 @@ def prefilter_job(job: Job, search: SearchProfile) -> tuple[int, list[str], bool
 
     kws = [k.lower() for k in search.title_keywords if k.strip()]
     if kws:
-        hit = [k for k in kws if k in title]
+        hit = [k for k in kws if title_has(title, k)]
         if hit:
             score += 40
             reasons.append(f"title matches '{hit[0]}'")

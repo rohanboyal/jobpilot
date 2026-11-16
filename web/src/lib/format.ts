@@ -93,3 +93,12 @@ export function pct(a: number, b: number): string {
   if (!b) return '—'
   return `${Math.round((a / b) * 100)}%`
 }
+
+/** When JobPilot found a job, in words: "found today", "found yesterday", "found 3 days ago" (by calendar day). */
+export function foundAgo(iso: string | null | undefined): string {
+  const d = parseUTC(iso)
+  if (!d) return ''
+  const day = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime()
+  const days = Math.round((day(new Date()) - day(d)) / 86_400_000)
+  return days <= 0 ? 'found today' : days === 1 ? 'found yesterday' : `found ${days} days ago`
+}

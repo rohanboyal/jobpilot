@@ -38,10 +38,11 @@ after approval; Run now / Stop are in the header. Jobs can also be applied to di
   `scoring.py` (AI fit + trust), `prepare.py` (cover letter + answers → Application), `discover.py` (web search for boards),
   `apply/base.py` (frame-aware form inspection/filling) and `apply/runner.py` (fill/submit one Application).
 - `backend/jobagent/llm/client.py` `run_llm` is the only way a model is called: the provider in `llm.provider`
-  (`llm/providers.py` registry; one module each with `complete()`/`check()`: `codex_cli.py` runs `codex exec
+  (`llm/providers.py` registry; one module each with `complete()`/`check()`/`models()`: `codex_cli.py` runs `codex exec
   --ephemeral --ignore-user-config -s read-only --output-schema` with agent tools disabled, `claude_cli.py` runs
   `claude -p --tools "" --strict-mcp-config --setting-sources ""`, `openai_compat.py`, `gemini_api.py` (Google's OpenAI-compatible endpoint), `anthropic_api.py` (official SDK),
-  `ollama.py`), then the optional Ollama fallback for allowed purposes when the main AI hits a limit. API keys only in .env. Schemas are made strict automatically
+  `ollama.py`), then the optional Ollama fallback for allowed purposes when the main AI hits a limit. API keys only in .env.
+  `uv run jobagent doctor [--json]` is the setup checklist. Schemas are made strict automatically
   (`strict_schema`). Budgeted via the `llm_calls` table. Prompts and schemas in `llm/prompts.py`.
 - `backend/jobagent/profiles.py` search profiles: a run covers the profiles ticked in the Run dialog (`RunDialog.tsx`; None =
   every active one) and crawls their merged profile, whose job titles alternate between profiles so each gets its top title
@@ -65,6 +66,19 @@ after approval; Run now / Stop are in the header. Jobs can also be applied to di
   "not stated" as a pass. Browser-site pages include site menus, so their remote flag comes from title/location only.
 - Resume analysis (`PROFILE_SCHEMA`) also extracts experience, education, projects, certifications and contact into
   `Profile.extra`; `/profile/contact` offers contact details for empty answer-bank fields (user accepts, never auto-filled).
+- Finding the right jobs: resume analysis suggests one family of titles as employers post them; `profiles.clean_title_keywords`
+  drops generic words (engineer, developer, software…) and always keeps title acronyms (AI, LLM, ML…); title keywords match
+  at word starts and short ones as whole words (`utils/text.title_has`); scoring puts jobs outside `target_roles` below 50;
+  the profile editor flags titles that don't match the profile's resume. Profiles show as cards (status, titles, resume,
+  duplicates); "New search profile from it" refuses a second profile with the same titles and resume.
+- Browser sign-in: Sign in opens the browser the user clicked from (Chrome or Edge, through Playwright's `channel`) with
+  JobPilot's own profile, never the user's; `browser.channel` makes every browser task use that one browser. It refuses
+  while the profile is in use (`browser.profile_in_use`). Sign out deletes that site's cookies from JobPilot's profile
+  (`browser.sign_out_of`).
+- Time windows: Today shows jobs found in the last `today.recent_days` (7); the Jobs lists, their counts and Analyze keep
+  `jobs.keep_days` (30). Jobs with an application always stay. Cards say "found N days ago" (`discovered_at`).
+- Sources: a company board answering 404 is paused with a note (`ATSSource.fetch`); Levels.fyi is paced under its free
+  20-a-minute limit; The Muse is off (its API answers automated clients with a bot check).
 - DB columns added after release go in `db._ADDED_COLUMNS` (create_all never alters tables).
 - `web/` React 19 + Vite + Tailwind v4 + TanStack Query; `src/api.ts` is the typed client, pages in `src/pages` (Today, Jobs,
   Applications, Profiles, Schedule, Settings, Setup wizard, Insights, Activity). Page state that should survive Back/refresh
@@ -88,7 +102,7 @@ after approval; Run now / Stop are in the header. Jobs can also be applied to di
   their normal speed; form filling is never paced. It lowers volume and speed only: no fingerprint faking, stealth or CAPTCHA solving.
 - JobPilot says who it is: plain HTTP requests send `User-Agent: JobPilot/…` (`utils/http.py`) and the browser keeps
   Playwright's own user agent and automation flag (`browser.py`). Never add a fake browser identity or
-  `--disable-blink-features=AutomationControlled`.
+  `--disable-blink-features=AutomationControlled`, and don't document how to.
 - Browser sources read pages like a visitor with low volume and one shared profile. LinkedIn, Indeed and Glassdoor forbid automation
   in their terms, so they stay off by default / marked `fragile`; do not add aggressive scraping or anti-detection tricks.
 - Whole-board API payloads are never sliced; `max_jobs_per_source_run` is a paging cap only, and a truncated board must not drive expiry.

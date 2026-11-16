@@ -136,3 +136,11 @@ def domain_of(url: str | None) -> str | None:
     if not ext.domain:
         return None
     return ".".join(p for p in (ext.domain, ext.suffix) if p)
+
+
+def title_has(title: str, keyword: str) -> bool:
+    """`keyword` at the start of a word in `title`: "llm" matches "LLM Engineer", "engineer" matches "Engineering",
+    but "ai" doesn't match "Maintenance" or "Chairman". Short keywords (3 letters or fewer) must be whole words."""
+    k = re.escape(" ".join(keyword.lower().split()))
+    end = r"(?![a-z0-9])" if len(keyword.strip()) <= 3 else ""
+    return re.search(rf"(?<![a-z0-9]){k}{end}", title) is not None

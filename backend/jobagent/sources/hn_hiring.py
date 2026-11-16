@@ -6,7 +6,7 @@ import re
 from collections.abc import Iterable
 
 from ..utils.http import get_json, make_client
-from ..utils.text import detect_remote, html_to_text, parse_date
+from ..utils.text import detect_remote, html_to_text, parse_date, title_has
 from .base import RawJob, Source, SourceContext, register
 
 _SPLIT = re.compile(r"\s*\|\s*")
@@ -39,7 +39,7 @@ class HNHiring(Source):
                 continue
             text = html_to_text(html)
             low = text.lower()
-            if kws and not any(k in low for k in kws) and not any(s in low for s in skills):
+            if kws and not any(title_has(low, k) for k in kws) and not any(s in low for s in skills):
                 continue
             first = text.split("\n", 1)[0]
             parts = [p.strip() for p in _SPLIT.split(first) if p.strip()]
