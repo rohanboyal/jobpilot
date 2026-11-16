@@ -3,6 +3,7 @@ name: CI
 # Every push and pull request: install from scratch, test, build and start JobPilot on Windows, macOS and Linux.
 on:
   push:
+    branches: [main]          # other branches run through their pull request (one run per change)
   pull_request:
   workflow_dispatch:
 
